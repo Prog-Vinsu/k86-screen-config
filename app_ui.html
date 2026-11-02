@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Attack Shark K86 - Screen Uploader</title>
+  <title>Attack Shark K86 - Configurator & Screen Uploader</title>
   <style>
     :root {
       --bg: #0d1117;
@@ -13,6 +13,7 @@
       --accent: #58a6ff;
       --accent-gradient: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
       --accent-hover: linear-gradient(135deg, #4f46e5 0%, #0891b2 100%);
+      --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
       --success: #238636;
       --error: #da3633;
       --text: #f0f6fc;
@@ -31,11 +32,11 @@
     body {
       background: var(--bg);
       color: var(--text);
-      padding: 20px;
+      padding: 16px 20px;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 14px;
     }
 
     header {
@@ -101,6 +102,76 @@
       background: currentColor;
     }
 
+    /* Tabs Navigation */
+    .tabs-nav {
+      display: flex;
+      gap: 6px;
+      background: var(--card);
+      padding: 4px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .tab-btn.active {
+      background: var(--accent-gradient);
+      color: #fff;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+    }
+
+    /* Tab Content Areas */
+    .tab-pane {
+      display: none;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .tab-pane.active {
+      display: flex;
+    }
+
+    /* Panels & Cards */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .panel-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     /* Drop Zone */
     .dropzone {
       border: 2px dashed var(--border);
@@ -141,17 +212,7 @@
       color: var(--muted);
     }
 
-    /* Preview and Settings Panel */
-    .panel {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
+    /* Preview Bezel */
     .preview-container {
       display: flex;
       gap: 16px;
@@ -209,7 +270,7 @@
       color: var(--text);
     }
 
-    /* Controls Grid */
+    /* Form Controls */
     .controls-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -242,6 +303,20 @@
       cursor: pointer;
     }
 
+    select, input[type="text"], input[type="number"] {
+      background: #0d1117;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 7px 10px;
+      font-size: 0.85rem;
+      outline: none;
+    }
+
+    select:focus, input:focus {
+      border-color: var(--accent);
+    }
+
     .radio-group {
       display: flex;
       gap: 6px;
@@ -267,37 +342,126 @@
       font-weight: 600;
     }
 
-    /* Progress & Action */
-    .btn-upload {
-      background: var(--accent-gradient);
-      color: #fff;
-      border: none;
-      padding: 12px;
+    /* Switch Rows */
+    .switch-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .switch-row:last-child {
+      border-bottom: none;
+    }
+
+    .switch-info h4 {
+      font-size: 0.88rem;
+      font-weight: 500;
+    }
+
+    .switch-info p {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .toggle-switch {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      cursor: pointer;
+    }
+
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .toggle-slider {
+      position: absolute;
+      inset: 0;
+      background: #21262d;
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      transition: 0.2s;
+    }
+
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background: var(--muted);
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+
+    .toggle-switch input:checked + .toggle-slider {
+      background: #6366f1;
+      border-color: #6366f1;
+    }
+
+    .toggle-switch input:checked + .toggle-slider:before {
+      transform: translateX(20px);
+      background: #ffffff;
+    }
+
+    /* Buttons */
+    .btn {
+      padding: 9px 16px;
       border-radius: var(--radius);
-      font-size: 0.95rem;
+      font-size: 0.88rem;
       font-weight: 600;
       cursor: pointer;
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
       transition: all 0.2s ease;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent-gradient);
+      color: #fff;
       box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
     }
 
-    .btn-upload:hover:not(:disabled) {
+    .btn-primary:hover:not(:disabled) {
       background: var(--accent-hover);
       transform: translateY(-1px);
-      box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
     }
 
-    .btn-upload:disabled {
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-danger {
+      background: var(--danger-gradient);
+      color: #fff;
+    }
+
+    .btn-danger:hover:not(:disabled) {
+      filter: brightness(1.1);
+    }
+
+    .btn:disabled {
       opacity: 0.5;
       cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
+      transform: none !important;
     }
 
+    /* Progress & Alert */
     .progress-bar-container {
       width: 100%;
       height: 8px;
@@ -344,6 +508,56 @@
       color: #f85149;
     }
 
+    /* Color picker layout */
+    .color-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="color"] {
+      -webkit-appearance: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      width: 44px;
+      height: 36px;
+      cursor: pointer;
+      background: transparent;
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+
+    input[type="color"]::-webkit-color-swatch {
+      border: none;
+      border-radius: 7px;
+    }
+
+    /* Info Table */
+    .info-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    .info-table td {
+      padding: 8px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .info-table td:first-child {
+      color: var(--muted);
+      width: 40%;
+    }
+
+    .info-table td:last-child {
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* Footer */
     footer {
       margin-top: auto;
       padding-top: 10px;
@@ -377,8 +591,8 @@
     <div class="brand">
       <img id="appIcon" src="icon.png" alt="Icon">
       <div>
-        <h1>Attack Shark K86 Screen Uploader</h1>
-        <span>Gerenciador Nativo de Tela TFT 240x135</span>
+        <h1>Attack Shark K86 Configurator</h1>
+        <span>Telinha TFT & Configurações de Hardware</span>
       </div>
     </div>
     <div id="deviceBadge" class="status-badge">
@@ -387,81 +601,312 @@
     </div>
   </header>
 
-  <!-- Drop Zone -->
-  <div id="dropzone" class="dropzone">
-    <svg viewBox="0 0 24 24">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
-    </svg>
-    <div class="dropzone-text">Arraste e solte seu GIF ou imagem aqui</div>
-    <div class="dropzone-subtext">ou clique para selecionar (.gif, .png, .jpg)</div>
-    <input type="file" id="fileInput" accept="image/gif,image/png,image/jpeg,image/webp" style="display: none;">
-  </div>
+  <!-- Navigation Tabs -->
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-tab="tab-screen">📺 Tela & GIFs</button>
+    <button class="tab-btn" data-tab="tab-device">⌨️ Teclado & Opções</button>
+    <button class="tab-btn" data-tab="tab-lighting">💡 Iluminação RGB</button>
+    <button class="tab-btn" data-tab="tab-info">ℹ️ Dispositivo</button>
+  </nav>
 
-  <!-- Preview and Controls Panel -->
-  <div id="previewPanel" class="panel" style="display: none;">
-    <div class="preview-container">
-      <div class="screen-bezel">
-        <img id="previewImg" src="" alt="Preview">
-      </div>
-      <div class="file-details">
-        <div id="fileName" class="file-name">animacao.gif</div>
-        <div id="fileDims" style="color: var(--muted);">240x135 px</div>
-        <div class="badge-row">
-          <div id="badgeFrames" class="badge">-- quadros</div>
-          <div id="badgeDuration" class="badge">-- ms/quadro</div>
-          <div id="badgeSize" class="badge">-- KB</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Controls -->
-    <div class="controls-grid">
-      <div class="control-group">
-        <div class="control-label">
-          Velocidade / Delay:
-          <span id="delayVal">40</span>
-        </div>
-        <input type="range" id="delaySlider" min="5" max="150" value="40">
-        <span style="font-size: 0.7rem; color: var(--muted);">Menor = mais rápido (recomendado 25 a 60)</span>
-      </div>
-
-      <div class="control-group">
-        <div class="control-label">
-          Limite de Quadros:
-          <span id="framesVal">60</span>
-        </div>
-        <input type="range" id="framesSlider" min="10" max="90" value="60">
-        <span style="font-size: 0.7rem; color: var(--muted);">Pula quadros se o GIF for longo</span>
-      </div>
-
-      <div class="control-group" style="grid-column: span 2;">
-        <div class="control-label">Enquadramento:</div>
-        <div class="radio-group">
-          <div class="radio-btn active" data-fit="crop">Preencher (Crop)</div>
-          <div class="radio-btn" data-fit="contain">Conter (Barras Pretas)</div>
-          <div class="radio-btn" data-fit="stretch">Esticar</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Status Alert -->
+  <!-- Global Alert Box -->
   <div id="alertBox" class="alert"></div>
 
-  <!-- Progress Bar & Upload Button -->
-  <div style="display: flex; flex-direction: column; gap: 8px;">
-    <button id="btnUpload" class="btn-upload" disabled>
-      ⚡ Enviar para a Telinha do Teclado
-    </button>
-    <div id="progressContainer" class="progress-bar-container">
-      <div id="progressBar" class="progress-bar"></div>
+  <!-- TAB 1: SCREEN & GIF UPLOAD -->
+  <div id="tab-screen" class="tab-pane active">
+    <div id="dropzone" class="dropzone">
+      <svg viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+      </svg>
+      <div class="dropzone-text">Arraste e solte seu GIF ou imagem aqui</div>
+      <div class="dropzone-subtext">ou clique para selecionar (.gif, .png, .jpg)</div>
+      <input type="file" id="fileInput" accept="image/gif,image/png,image/jpeg,image/webp" style="display: none;">
     </div>
-    <div id="progressInfo" class="progress-info" style="display: none;">
-      <span id="progressMsg">Iniciando...</span>
-      <span id="progressPct">0%</span>
+
+    <!-- Preview Panel -->
+    <div id="previewPanel" class="panel" style="display: none;">
+      <div class="preview-container">
+        <div class="screen-bezel">
+          <img id="previewImg" src="" alt="Preview">
+        </div>
+        <div class="file-details">
+          <div id="fileName" class="file-name">animacao.gif</div>
+          <div id="fileDims" style="color: var(--muted);">240x135 px</div>
+          <div class="badge-row">
+            <div id="badgeFrames" class="badge">-- quadros</div>
+            <div id="badgeDuration" class="badge">-- ms/quadro</div>
+            <div id="badgeSize" class="badge">-- KB</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls-grid">
+        <div class="control-group">
+          <div class="control-label">
+            Velocidade / Delay:
+            <span id="delayVal">40</span>
+          </div>
+          <input type="range" id="delaySlider" min="5" max="150" value="40">
+          <span style="font-size: 0.7rem; color: var(--muted);">Menor = mais rápido (recomendado 25 a 60)</span>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            Limite de Quadros:
+            <span id="framesVal">60</span>
+          </div>
+          <input type="range" id="framesSlider" min="10" max="90" value="60">
+          <span style="font-size: 0.7rem; color: var(--muted);">Amostragem inteligente para caber na flash</span>
+        </div>
+
+        <div class="control-group" style="grid-column: span 2;">
+          <div class="control-label">Enquadramento:</div>
+          <div class="radio-group">
+            <div class="radio-btn active" data-fit="crop">Preencher (Crop)</div>
+            <div class="radio-btn" data-fit="contain">Conter (Barras Pretas)</div>
+            <div class="radio-btn" data-fit="stretch">Esticar</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Action -->
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <button id="btnUpload" class="btn btn-primary" style="width: 100%; padding: 12px;" disabled>
+        ⚡ Enviar para a Telinha do Teclado
+      </button>
+      <div id="progressContainer" class="progress-bar-container">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div id="progressInfo" class="progress-info" style="display: none;">
+        <span id="progressMsg">Iniciando...</span>
+        <span id="progressPct">0%</span>
+      </div>
     </div>
   </div>
 
+  <!-- TAB 2: KEYBOARD & HARDWARE SETTINGS -->
+  <div id="tab-device" class="tab-pane">
+    <!-- Clock Sync -->
+    <div class="panel">
+      <div class="panel-title">🕒 Relógio da Tela TFT</div>
+      <p style="font-size: 0.8rem; color: var(--muted);">Sincroniza o relógio interno exibido na telinha do K86 diretamente com o horário do seu computador.</p>
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="btnSyncClock" class="btn btn-secondary">
+          Sincronizar com Horário do PC
+        </button>
+      </div>
+    </div>
+
+    <!-- Debounce -->
+    <div class="panel">
+      <div class="panel-title">⚡ Debounce de Teclas (Tempo de Resposta)</div>
+      <p style="font-size: 0.8rem; color: var(--muted);">Valores mais baixos diminuem a latência das teclas; aumente caso sinta repetições involuntárias (duplo clique).</p>
+      <div class="control-group">
+        <div class="control-label">
+          Tempo de Debounce:
+          <span id="debounceVal">3 ms</span>
+        </div>
+        <input type="range" id="debounceSlider" min="1" max="10" value="3">
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="btnSaveDebounce" class="btn btn-secondary">Salvar Debounce</button>
+      </div>
+    </div>
+
+    <!-- Hardware Switches -->
+    <div class="panel">
+      <div class="panel-title">⚙️ Interruptores de Hardware</div>
+      
+      <div class="switch-row">
+        <div class="switch-info">
+          <h4>Bloquear Tecla Windows (Win Lock)</h4>
+          <p>Desativa a tecla Windows durante jogos para evitar saídas acidentais.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="switchWinLock">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="switch-row">
+        <div class="switch-info">
+          <h4>Inverter WASD com as Setas</h4>
+          <p>Troca a função das teclas W/A/S/D pelas teclas de setas direcionais.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="switchWasdSwap">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="switch-row">
+        <div class="switch-info">
+          <h4>Desligar Iluminação das Teclas (Backlight)</h4>
+          <p>Apaga todos os LEDs sob as teclas do teclado.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="switchLedOff">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="switch-row">
+        <div class="switch-info">
+          <h4>Desligar LEDs Laterais (Side Light)</h4>
+          <p>Desativa as faixas luminosas nas laterais do K86.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="switchSideLedOff">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; padding-top: 6px;">
+        <button id="btnSaveOptions" class="btn btn-secondary">Aplicar Opções</button>
+      </div>
+    </div>
+
+    <!-- Sleep Timers -->
+    <div class="panel">
+      <div class="panel-title">🌙 Temporizadores de Suspensão (Economia de Bateria)</div>
+      <div class="controls-grid" style="border: none; padding-top: 0;">
+        <div class="control-group">
+          <label class="control-label">Hibernação 2.4 GHz:</label>
+          <select id="selSleepRf">
+            <option value="60">1 minuto (60s)</option>
+            <option value="120">2 minutos (120s)</option>
+            <option value="180">3 minutos (180s - Padrão)</option>
+            <option value="300">5 minutos (300s)</option>
+            <option value="600">10 minutos (600s)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Hibernação Bluetooth:</label>
+          <select id="selSleepBt">
+            <option value="60">1 minuto (60s)</option>
+            <option value="120">2 minutos (120s)</option>
+            <option value="180">3 minutos (180s - Padrão)</option>
+            <option value="300">5 minutos (300s)</option>
+            <option value="600">10 minutos (600s)</option>
+          </select>
+        </div>
+        <div class="control-group" style="grid-column: span 2;">
+          <label class="control-label">Suspensão Profunda (Deep Sleep):</label>
+          <select id="selSleepDeep">
+            <option value="600">10 minutos (600s)</option>
+            <option value="1200">20 minutos (1200s - Padrão)</option>
+            <option value="1800">30 minutos (1800s)</option>
+            <option value="3600">1 hora (3600s)</option>
+          </select>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="btnSaveSleep" class="btn btn-secondary">Salvar Temporizadores</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: RGB LIGHTING -->
+  <div id="tab-lighting" class="tab-pane">
+    <div class="panel">
+      <div class="panel-title">💡 Efeitos e Cores RGB</div>
+
+      <div class="control-group">
+        <label class="control-label">Modo / Efeito de Iluminação:</label>
+        <select id="selLedMode">
+          <option value="1">Estático (Static)</option>
+          <option value="2">Respiração (Breathing)</option>
+          <option value="3">Ciclo de Espectro (Spectrum Cycle)</option>
+          <option value="4">Onda (Wave)</option>
+          <option value="5">Ondulação ao Digitar (Ripple)</option>
+          <option value="6">Pontos Estelares (Star Dots)</option>
+          <option value="7">Fluxo (Flow)</option>
+          <option value="8">Sombra de Tecla (Key Shadow)</option>
+          <option value="9">Camadas (Layers)</option>
+          <option value="10">Onda Senoidal (Sine Wave)</option>
+          <option value="11">Mola (Spring)</option>
+          <option value="12">Neon</option>
+          <option value="14">Radiante (Radiant)</option>
+          <option value="15">Loop</option>
+          <option value="16">Grade de Cores (Color Grid)</option>
+          <option value="17">Queda de Neve (Snowfall)</option>
+          <option value="18">Meteoro (Meteor)</option>
+          <option value="19">Neve Suave (Silent Snow)</option>
+        </select>
+      </div>
+
+      <div class="controls-grid" style="border: none; padding-top: 0;">
+        <div class="control-group">
+          <label class="control-label">Modo de Cor:</label>
+          <div class="radio-group">
+            <div class="radio-btn active" id="btnColorCustom" data-rainbow="0">Cor Fixa</div>
+            <div class="radio-btn" id="btnColorRainbow" data-rainbow="1">Arco-íris</div>
+          </div>
+        </div>
+
+        <div class="control-group" id="groupCustomColor">
+          <label class="control-label">Cor Selecionada:</label>
+          <div class="color-row">
+            <input type="color" id="inputLedColor" value="#00ffff">
+            <span id="labelColorHex" style="font-family: monospace; font-size: 0.85rem;">#00FFFF</span>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            Brilho dos LEDs:
+            <span id="labelBrightness">4 (Máx)</span>
+          </div>
+          <input type="range" id="sliderBrightness" min="0" max="4" value="4">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            Velocidade do Efeito:
+            <span id="labelSpeed">2</span>
+          </div>
+          <input type="range" id="sliderSpeed" min="0" max="4" value="2">
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; padding-top: 10px;">
+        <button id="btnApplyLed" class="btn btn-primary">
+          Aplicar Iluminação
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: DEVICE INFO & MAINTENANCE -->
+  <div id="tab-info" class="tab-pane">
+    <div class="panel">
+      <div class="panel-title">ℹ️ Informações de Hardware</div>
+      <table class="info-table">
+        <tbody>
+          <tr><td>Modelo:</td><td id="infoModel">Attack Shark K86</td></tr>
+          <tr><td>Revisão / Device ID:</td><td id="infoDevId">--</td></tr>
+          <tr><td>Identificador USB:</td><td id="infoUsbId">3151:4015</td></tr>
+          <tr><td>Chipset / Família:</td><td id="infoFamily">ROYUAN YC500 / YC3121</td></tr>
+          <tr><td>Interface de Comunicação:</td><td id="infoNode">/dev/hidrawX</td></tr>
+          <tr><td>Resolução da Telinha:</td><td>240 × 135 pixels (RGB565)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel" style="border-color: rgba(239, 68, 68, 0.3);">
+      <div class="panel-title" style="color: #f85149;">⚠️ Restauração de Fábrica</div>
+      <p style="font-size: 0.8rem; color: var(--muted);">Restaura todas as configurações, tempos de suspensão, debounce e iluminação para os padrões originais de fábrica do teclado.</p>
+      <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
+        <button id="btnFactoryReset" class="btn btn-danger">
+          Restaurar Padrões de Fábrica
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
   <footer>
     <span>Resolução nativa: 240x135 (16:9)</span>
     <div class="links-group">
@@ -472,47 +917,44 @@
   </footer>
 
   <script>
-    // State variables
+    // State
     let currentFileBase64 = null;
     let currentFitMode = 'crop';
     let isUploading = false;
+    let isRainbow = false;
     const isNativeBridge = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pybridge);
 
-    const dropzone = document.getElementById('dropzone');
-    const fileInput = document.getElementById('fileInput');
-    const previewPanel = document.getElementById('previewPanel');
-    const previewImg = document.getElementById('previewImg');
-    const fileName = document.getElementById('fileName');
-    const fileDims = document.getElementById('fileDims');
-    const badgeFrames = document.getElementById('badgeFrames');
-    const badgeDuration = document.getElementById('badgeDuration');
-    const badgeSize = document.getElementById('badgeSize');
-
-    const delaySlider = document.getElementById('delaySlider');
-    const delayVal = document.getElementById('delayVal');
-    const framesSlider = document.getElementById('framesSlider');
-    const framesVal = document.getElementById('framesVal');
-
-    const btnUpload = document.getElementById('btnUpload');
-    const progressContainer = document.getElementById('progressContainer');
-    const progressBar = document.getElementById('progressBar');
-    const progressInfo = document.getElementById('progressInfo');
-    const progressMsg = document.getElementById('progressMsg');
-    const progressPct = document.getElementById('progressPct');
+    // Elements
     const alertBox = document.getElementById('alertBox');
     const deviceBadge = document.getElementById('deviceBadge');
     const deviceText = document.getElementById('deviceText');
 
-    // IPC Messaging Helper (Native WebKit Bridge or HTTP Fallback)
+    // Tab Navigation
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const target = document.getElementById(btn.dataset.tab);
+        if (target) target.classList.add('active');
+
+        // Auto-fetch settings when entering device or lighting tabs
+        if (btn.dataset.tab === 'tab-device' || btn.dataset.tab === 'tab-lighting' || btn.dataset.tab === 'tab-info') {
+          fetchKeyboardSettings();
+        }
+      });
+    });
+
+    // IPC Messaging
     function sendToPython(action, data = {}) {
       const msg = { action, ...data };
       if (isNativeBridge) {
         window.webkit.messageHandlers.pybridge.postMessage(JSON.stringify(msg));
       } else {
-        // HTTP Server fallback
+        const token = window.__AUTH_TOKEN__ || '';
         fetch('/api/' + action, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
           body: JSON.stringify(msg)
         }).catch(console.error);
       }
@@ -526,16 +968,148 @@
       }
     }
 
-    // Callbacks invoked directly from Python in Native Mode
+    function showAlert(type, message) {
+      alertBox.className = `alert ${type}`;
+      alertBox.textContent = message;
+      alertBox.style.display = 'block';
+      setTimeout(() => {
+        if (type === 'success') hideAlert();
+      }, 5000);
+    }
+
+    function hideAlert() {
+      alertBox.style.display = 'none';
+    }
+
+    // Callbacks from Python
     window.onDeviceStatus = function(d) {
       if (d.connected) {
         deviceBadge.className = 'status-badge connected';
         deviceText.textContent = `Teclado: ${d.name} (${d.node})`;
+        document.getElementById('infoDevId').textContent = d.dev_id || '1168';
+        document.getElementById('infoNode').textContent = d.node;
+        document.getElementById('infoUsbId').textContent = d.vid_pid;
       } else {
         deviceBadge.className = 'status-badge error';
-        deviceText.textContent = 'Teclado não detectado (conecte o cabo USB)';
+        deviceText.textContent = d.conflict 
+          ? `Conflito: feche o processo '${d.conflict}'`
+          : 'Teclado não detectado (conecte o cabo USB)';
       }
     };
+
+    window.onFeedback = function(res) {
+      if (res.success) {
+        showAlert('success', '✓ ' + res.message);
+      } else {
+        showAlert('error', '✗ ' + res.message);
+      }
+    };
+
+    window.onSettingsLoaded = function(s) {
+      // Debounce
+      if (s.debounce !== undefined) {
+        document.getElementById('debounceSlider').value = s.debounce;
+        document.getElementById('debounceVal').textContent = s.debounce + ' ms';
+      }
+      // Options
+      if (s.options) {
+        document.getElementById('switchWinLock').checked = !!s.options.win_lock;
+        document.getElementById('switchWasdSwap').checked = !!s.options.wasd_swap;
+        document.getElementById('switchLedOff').checked = !!s.options.led_off;
+        document.getElementById('switchSideLedOff').checked = !!s.options.side_led_off;
+      }
+      // Sleep
+      if (s.sleep) {
+        document.getElementById('selSleepRf').value = s.sleep.rf_sleep;
+        document.getElementById('selSleepBt').value = s.sleep.bt_sleep;
+        document.getElementById('selSleepDeep').value = s.sleep.rf_deep;
+      }
+      // LED
+      if (s.led) {
+        document.getElementById('selLedMode').value = s.led.mode;
+        document.getElementById('sliderBrightness').value = s.led.brightness;
+        document.getElementById('labelBrightness').textContent = s.led.brightness === 4 ? '4 (Máx)' : s.led.brightness;
+        document.getElementById('sliderSpeed').value = s.led.speed;
+        document.getElementById('labelSpeed').textContent = s.led.speed;
+
+        isRainbow = !!s.led.rainbow;
+        updateRainbowButtons();
+
+        if (s.led.rgb) {
+          const hex = '#' + s.led.rgb.map(c => c.toString(16).padStart(2, '0')).join('');
+          document.getElementById('inputLedColor').value = hex;
+          document.getElementById('labelColorHex').textContent = hex.toUpperCase();
+        }
+      }
+    };
+
+    function fetchKeyboardSettings() {
+      sendToPython('get_settings');
+    }
+
+    // Tab 1: Screen & GIF logic
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const previewPanel = document.getElementById('previewPanel');
+    const previewImg = document.getElementById('previewImg');
+    const fileName = document.getElementById('fileName');
+    const fileDims = document.getElementById('fileDims');
+    const badgeFrames = document.getElementById('badgeFrames');
+    const badgeDuration = document.getElementById('badgeDuration');
+    const badgeSize = document.getElementById('badgeSize');
+    const delaySlider = document.getElementById('delaySlider');
+    const delayVal = document.getElementById('delayVal');
+    const framesSlider = document.getElementById('framesSlider');
+    const framesVal = document.getElementById('framesVal');
+    const btnUpload = document.getElementById('btnUpload');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressInfo = document.getElementById('progressInfo');
+    const progressMsg = document.getElementById('progressMsg');
+    const progressPct = document.getElementById('progressPct');
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) loadFile(e.target.files[0]);
+    });
+
+    document.querySelectorAll('.radio-btn[data-fit]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.radio-btn[data-fit]').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFitMode = btn.dataset.fit;
+        previewImg.style.objectFit = currentFitMode === 'contain' ? 'contain' : (currentFitMode === 'stretch' ? 'fill' : 'cover');
+      });
+    });
+
+    delaySlider.addEventListener('input', () => delayVal.textContent = delaySlider.value);
+    framesSlider.addEventListener('input', () => framesVal.textContent = framesSlider.value);
+
+    function loadFile(file) {
+      fileName.textContent = file.name;
+      badgeSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+      hideAlert();
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        currentFileBase64 = e.target.result;
+        previewImg.src = currentFileBase64;
+        previewPanel.style.display = 'flex';
+        btnUpload.disabled = false;
+        sendToPython('inspect', { image: currentFileBase64 });
+      };
+      reader.readAsDataURL(file);
+    }
 
     window.onInspectResult = function(data) {
       if (data.ok) {
@@ -567,84 +1141,7 @@
       }
     };
 
-    // Drag and Drop
-    dropzone.addEventListener('click', () => fileInput.click());
-    dropzone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropzone.classList.add('dragover');
-    });
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-    dropzone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropzone.classList.remove('dragover');
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        loadFile(e.dataTransfer.files[0]);
-      }
-    });
-    fileInput.addEventListener('change', (e) => {
-      if (e.target.files && e.target.files[0]) {
-        loadFile(e.target.files[0]);
-      }
-    });
-
-    // Fit mode buttons
-    document.querySelectorAll('.radio-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        currentFitMode = btn.dataset.fit;
-        previewImg.style.objectFit = currentFitMode === 'contain' ? 'contain' : (currentFitMode === 'stretch' ? 'fill' : 'cover');
-      });
-    });
-
-    // Sliders
-    delaySlider.addEventListener('input', () => {
-      delayVal.textContent = delaySlider.value;
-    });
-    framesSlider.addEventListener('input', () => {
-      framesVal.textContent = framesSlider.value;
-    });
-
-    function loadFile(file) {
-      fileName.textContent = file.name;
-      badgeSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
-      hideAlert();
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        currentFileBase64 = e.target.result;
-        previewImg.src = currentFileBase64;
-        previewPanel.style.display = 'flex';
-        btnUpload.disabled = false;
-
-        if (isNativeBridge) {
-          sendToPython('inspect', { image: currentFileBase64 });
-        } else {
-          fetch('/api/inspect', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ image: currentFileBase64 })
-          })
-          .then(res => res.json())
-          .then(window.onInspectResult)
-          .catch(() => {});
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-
-    function showAlert(type, message) {
-      alertBox.className = `alert ${type}`;
-      alertBox.textContent = message;
-      alertBox.style.display = 'block';
-    }
-
-    function hideAlert() {
-      alertBox.style.display = 'none';
-    }
-
-    // Upload Action
-    btnUpload.addEventListener('click', async () => {
+    btnUpload.addEventListener('click', () => {
       if (!currentFileBase64 || isUploading) return;
       isUploading = true;
       btnUpload.disabled = true;
@@ -656,61 +1153,113 @@
       progressPct.textContent = '0%';
       progressMsg.textContent = 'Preparando quadros...';
 
-      const uploadPayload = {
+      sendToPython('upload', {
         image: currentFileBase64,
         delay: parseInt(delaySlider.value, 10),
         max_frames: parseInt(framesSlider.value, 10),
         fit: currentFitMode
-      };
-
-      if (isNativeBridge) {
-        sendToPython('upload', uploadPayload);
-      } else {
-        // Fallback HTTP streaming reader
-        try {
-          const res = await fetch('/api/upload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(uploadPayload)
-          });
-          const reader = res.body.getReader();
-          const decoder = new TextDecoder();
-          let buffer = '';
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const parts = buffer.split('\n\n');
-            buffer = parts.pop();
-            for (const part of parts) {
-              if (part.startsWith('data: ')) {
-                window.onUploadProgress(JSON.parse(part.slice(6)));
-              }
-            }
-          }
-        } catch (err) {
-          showAlert('error', 'Falha na comunicação: ' + err);
-          isUploading = false;
-          btnUpload.disabled = false;
-        }
-      }
+      });
     });
 
-    // Check device status
-    function checkDevice() {
-      if (isNativeBridge) {
-        sendToPython('status');
+    // Tab 2: Device Settings listeners
+    document.getElementById('btnSyncClock').addEventListener('click', () => {
+      sendToPython('set_clock');
+    });
+
+    const debounceSlider = document.getElementById('debounceSlider');
+    debounceSlider.addEventListener('input', () => {
+      document.getElementById('debounceVal').textContent = debounceSlider.value + ' ms';
+    });
+    document.getElementById('btnSaveDebounce').addEventListener('click', () => {
+      sendToPython('set_debounce', { value: parseInt(debounceSlider.value, 10) });
+    });
+
+    document.getElementById('btnSaveOptions').addEventListener('click', () => {
+      sendToPython('set_options', {
+        win_lock: document.getElementById('switchWinLock').checked,
+        wasd_swap: document.getElementById('switchWasdSwap').checked,
+        led_off: document.getElementById('switchLedOff').checked,
+        side_led_off: document.getElementById('switchSideLedOff').checked,
+      });
+    });
+
+    document.getElementById('btnSaveSleep').addEventListener('click', () => {
+      sendToPython('set_sleep', {
+        rf_sleep: parseInt(document.getElementById('selSleepRf').value, 10),
+        bt_sleep: parseInt(document.getElementById('selSleepBt').value, 10),
+        rf_deep: parseInt(document.getElementById('selSleepDeep').value, 10),
+        bt_deep: parseInt(document.getElementById('selSleepDeep').value, 10),
+      });
+    });
+
+    // Tab 3: Lighting listeners
+    const inputLedColor = document.getElementById('inputLedColor');
+    const labelColorHex = document.getElementById('labelColorHex');
+    inputLedColor.addEventListener('input', () => {
+      labelColorHex.textContent = inputLedColor.value.toUpperCase();
+    });
+
+    function updateRainbowButtons() {
+      if (isRainbow) {
+        document.getElementById('btnColorRainbow').classList.add('active');
+        document.getElementById('btnColorCustom').classList.remove('active');
+        document.getElementById('groupCustomColor').style.opacity = '0.4';
       } else {
-        fetch('/api/status')
-          .then(r => r.json())
-          .then(window.onDeviceStatus)
-          .catch(() => {});
+        document.getElementById('btnColorCustom').classList.add('active');
+        document.getElementById('btnColorRainbow').classList.remove('active');
+        document.getElementById('groupCustomColor').style.opacity = '1.0';
       }
     }
 
+    document.getElementById('btnColorCustom').addEventListener('click', () => {
+      isRainbow = false;
+      updateRainbowButtons();
+    });
+    document.getElementById('btnColorRainbow').addEventListener('click', () => {
+      isRainbow = true;
+      updateRainbowButtons();
+    });
+
+    const sliderBrightness = document.getElementById('sliderBrightness');
+    sliderBrightness.addEventListener('input', () => {
+      const v = parseInt(sliderBrightness.value, 10);
+      document.getElementById('labelBrightness').textContent = v === 4 ? '4 (Máx)' : v;
+    });
+
+    const sliderSpeed = document.getElementById('sliderSpeed');
+    sliderSpeed.addEventListener('input', () => {
+      document.getElementById('labelSpeed').textContent = sliderSpeed.value;
+    });
+
+    document.getElementById('btnApplyLed').addEventListener('click', () => {
+      const hex = inputLedColor.value.replace('#', '');
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+
+      sendToPython('set_led', {
+        mode: parseInt(document.getElementById('selLedMode').value, 10),
+        speed: parseInt(sliderSpeed.value, 10),
+        brightness: parseInt(sliderBrightness.value, 10),
+        rainbow: isRainbow,
+        rgb: [r, g, b]
+      });
+    });
+
+    // Tab 4: Reset
+    document.getElementById('btnFactoryReset').addEventListener('click', () => {
+      if (confirm('Tem certeza de que deseja restaurar as configurações de fábrica do teclado? Todas as personalizações de sono e iluminação serão redefinidas.')) {
+        sendToPython('factory_reset');
+      }
+    });
+
+    // Device check interval
+    function checkDevice() {
+      sendToPython('status');
+    }
+
     checkDevice();
-    setInterval(checkDevice, 3000);
+    setInterval(checkDevice, 4000);
   </script>
 </body>
 </html>

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Attack Shark K86 Screen Uploader
-Native animated GIF and still image uploader for the 240x135 TFT screen
-on the Attack Shark K86 mechanical keyboard (Linux).
+Attack Shark K86 Screen Uploader & Configurator
+Native animated GIF uploader and full hardware settings configurator
+for the Attack Shark K86 mechanical keyboard (Linux).
 
 Modo GUI (Nativo): execute sem argumentos para abrir a janela nativa do sistema (GTK3 + WebKit2).
 Modo CLI: execute com o caminho do arquivo para envio direto pelo terminal.
@@ -10,6 +10,7 @@ Modo CLI: execute com o caminho do arquivo para envio direto pelo terminal.
 
 import argparse
 import base64
+import datetime
 import fcntl
 import glob
 import io
@@ -28,7 +29,7 @@ try:
 except ImportError:
     sys.exit("Erro: Pillow não está instalado. Instale com: pip install pillow ou sudo apt install python3-pil")
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 # Constantes do display do K86
 SCREEN_W = 240
@@ -37,13 +38,11 @@ PAGE_DATA_LEN = 56
 FRAME_RAW_LEN = SCREEN_W * SCREEN_H * 2  # 64.800 bytes (RGB565)
 FRAME_STRIDE = 65536
 
-# IDs USB conhecidos para teclados Attack Shark / ROYUAN
 SUPPORTED_VID_PIDS = [
     ("3151", "4015"),  # K86 Rev 1 (yc3121 / yc500 - ID 1168)
     ("3151", "5002"),  # K86 Rev 2 (yc3123 / gen2 - ID 2730)
 ]
 
-# IDs de dispositivo oficiais Attack Shark K86 verificados para tela
 VERIFIED_K86_DEVICE_IDS = [1168, 2730]
 
 def _ioc(nr: int, ln: int) -> int:
@@ -57,8 +56,11 @@ def checksum7(packet: bytearray) -> None:
     packet[7] = (0xFF - (sum(packet[0:7]) & 0xFF)) & 0xFF
 
 
+def checksum8(packet: bytearray) -> None:
+    packet[8] = (0xFF - (sum(packet[0:8]) & 0xFF)) & 0xFF
+
+
 def check_conflicting_tools() -> Optional[str]:
-    """Verifica se ferramentas concorrentes (como o sharkfin) estão abertas."""
     for proc in ["sharkfin", "k86_screen"]:
         try:
             res = subprocess.run(["pgrep", "-x", proc], capture_output=True, text=True)
@@ -105,7 +107,6 @@ class HidrawDevice:
         return None
 
     def read_device_id(self) -> Optional[int]:
-        """Envia comando 0x8F (identify - somente leitura) e extrai o device ID u32 LE."""
         p = bytearray(64)
         p[0] = 0x8F
         checksum7(p)
@@ -118,10 +119,6 @@ class HidrawDevice:
 
 
 def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int]]]:
-    """
-    Localiza o teclado K86 na interface vendor HID (Usage Page 0xFFFF, Usage 0x02).
-    Retorna: (node, vid:pid, name, device_id)
-    """
     for hidraw_path in glob.glob("/sys/class/hidraw/hidraw*"):
         dev_dir = os.path.join(hidraw_path, "device")
         uevent_file = os.path.join(dev_dir, "uevent")
@@ -169,6 +166,175 @@ def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int]]]:
     return None
 
 
+# ==============================================================================
+# OPERAÇÕES DE CONFIGURAÇÃO DE HARDWARE (SHARKFIN COMPATIBLE)
+# ==============================================================================
+def sync_clock(dev: HidrawDevice, dt: Optional[datetime.datetime] = None) -> bool:
+    if dt is None:
+        dt = datetime.datetime.now()
+    p = bytearray(64)
+    p[0] = 0x28
+    checksum7(p)
+    p[8] = (dt.year >> 8) & 0xFF
+    p[9] = dt.year & 0xFF
+    p[10] = dt.month
+    p[11] = dt.day
+    p[12] = dt.hour
+    p[13] = dt.minute
+    p[14] = dt.second
+    dev.send_feature(bytes(p))
+    return True
+
+
+def read_keyboard_settings(dev: HidrawDevice, dev_id: int) -> dict:
+    # 1. Debounce
+    p = bytearray(64)
+    p[0] = 0x91 if dev_id == 1168 else 0x86
+    checksum7(p)
+    r_deb = dev.roundtrip(bytes(p))
+    deb = (r_deb[2] if dev_id == 1168 else r_deb[1]) if r_deb else 3
+
+    # 2. Options
+    p = bytearray(64)
+    p[0] = 0x86 if dev_id == 1168 else 0x89
+    checksum7(p)
+    r_opt = dev.roundtrip(bytes(p))
+    flags = r_opt[2] if r_opt else 0
+    options = {
+        "win_lock": bool(flags & 1),
+        "mac_mode": bool(flags & 2),
+        "wasd_swap": bool(flags & 8),
+        "led_off": bool(flags & 16),
+        "side_led_off": bool(flags & 32),
+    }
+
+    # 3. Sleep Times
+    p = bytearray(64)
+    p[0] = 0x92 if dev_id == 1168 else 0x91
+    checksum7(p)
+    r_slp = dev.roundtrip(bytes(p))
+    if r_slp:
+        bt_sleep = int.from_bytes(r_slp[1:3], 'little')
+        rf_sleep = int.from_bytes(r_slp[3:5], 'little')
+        bt_deep = int.from_bytes(r_slp[5:7], 'little')
+        rf_deep = int.from_bytes(r_slp[7:9], 'little')
+    else:
+        bt_sleep, rf_sleep, bt_deep, rf_deep = 180, 180, 1200, 1200
+    sleep = {
+        "bt_sleep": bt_sleep,
+        "rf_sleep": rf_sleep,
+        "bt_deep": bt_deep,
+        "rf_deep": rf_deep,
+    }
+
+    # 4. LED Parameters
+    p = bytearray(64)
+    p[0] = 0x87
+    checksum7(p)
+    r_led = dev.roundtrip(bytes(p))
+    if r_led:
+        mode = r_led[1]
+        speed = max(0, min(4, 5 - r_led[2] if dev_id == 1168 else r_led[2]))
+        brightness = max(0, min(4, r_led[3]))
+        flags4 = r_led[4]
+        rainbow = (flags4 & 0x0F) == 8
+        rgb = [r_led[5], r_led[6], r_led[7]]
+    else:
+        mode, speed, brightness, rainbow, rgb = 4, 2, 4, False, [0, 255, 255]
+    led = {
+        "mode": mode,
+        "speed": speed,
+        "brightness": brightness,
+        "rainbow": rainbow,
+        "rgb": rgb,
+    }
+
+    return {"debounce": deb, "options": options, "sleep": sleep, "led": led}
+
+
+def write_debounce(dev: HidrawDevice, dev_id: int, val_ms: int) -> bool:
+    val_ms = max(1, min(10, val_ms))
+    p = bytearray(64)
+    if dev_id == 1168:
+        p[0] = 0x11
+        p[1] = 0
+        p[2] = val_ms
+    else:
+        p[0] = 0x06
+        p[1] = val_ms
+    checksum7(p)
+    dev.send_feature(bytes(p))
+    return True
+
+
+def write_options(dev: HidrawDevice, dev_id: int, opts: dict) -> bool:
+    p = bytearray(64)
+    p[0] = 0x86 if dev_id == 1168 else 0x89
+    checksum7(p)
+    r = dev.roundtrip(bytes(p))
+    preserved = r[2] if r else 0
+    fn_matrix = r[3] if r else 0
+    power_save = r[4] if r else 0
+
+    flags = (
+        (preserved & 0b11000000)
+        | (1 if opts.get("win_lock") else 0)
+        | (8 if opts.get("wasd_swap") else 0)
+        | (16 if opts.get("led_off") else 0)
+        | (32 if opts.get("side_led_off") else 0)
+    )
+
+    p_set = bytearray(64)
+    p_set[0] = 0x06 if dev_id == 1168 else 0x09
+    p_set[1] = 0
+    p_set[2] = flags
+    p_set[3] = fn_matrix
+    p_set[4] = power_save
+    checksum7(p_set)
+    dev.send_feature(bytes(p_set))
+    return True
+
+
+def write_sleep_times(dev: HidrawDevice, dev_id: int, bt: int, rf: int, dbt: int, drf: int) -> bool:
+    p = bytearray(64)
+    p[0] = 0x12 if dev_id == 1168 else 0x11
+    checksum7(p)
+    p[8:10] = bt.to_bytes(2, "little")
+    p[10:12] = rf.to_bytes(2, "little")
+    p[12:14] = dbt.to_bytes(2, "little")
+    p[14:16] = drf.to_bytes(2, "little")
+    dev.send_feature(bytes(p))
+    return True
+
+
+def write_led_param(
+    dev: HidrawDevice, dev_id: int, mode: int, speed: int, brightness: int, rainbow: bool, rgb: list
+) -> bool:
+    p = bytearray(64)
+    p[0] = 0x07
+    p[1] = max(1, min(19, mode))
+    p[2] = max(1, 5 - speed) if dev_id == 1168 else max(0, min(4, speed))
+    p[3] = max(0, min(4, brightness))
+    p[4] = 0x08 if rainbow else 0x07
+    p[5] = rgb[0] & 0xFF
+    p[6] = rgb[1] & 0xFF
+    p[7] = rgb[2] & 0xFF
+    checksum8(p)
+    dev.send_feature(bytes(p))
+    return True
+
+
+def write_factory_reset(dev: HidrawDevice, dev_id: int) -> bool:
+    p = bytearray(64)
+    p[0] = 0x02 if dev_id == 1168 else 0x01
+    checksum7(p)
+    dev.send_feature(bytes(p))
+    return True
+
+
+# ==============================================================================
+# PROCESSAMENTO DE IMAGEM & PROTOCOLO DE TELA
+# ==============================================================================
 def convert_image_to_rgb565_column_major(img: Image.Image) -> bytes:
     img_rgb = img.convert("RGB")
     px = img_rgb.load()
@@ -365,7 +531,6 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def launch_native_gui(dry_run: bool = False):
-    """Inicia a aplicação em uma janela nativa GTK3 com WebKit2GTK sem qualquer servidor HTTP."""
     try:
         import gi
         gi.require_version("Gtk", "3.0")
@@ -380,8 +545,8 @@ def launch_native_gui(dry_run: bool = False):
     ucm = WebKit2.UserContentManager()
     ucm.register_script_message_handler("pybridge")
 
-    win = Gtk.Window(title="Attack Shark K86 Screen Uploader")
-    win.set_default_size(680, 820)
+    win = Gtk.Window(title="Attack Shark K86 Configurator")
+    win.set_default_size(700, 840)
     win.set_position(Gtk.WindowPosition.CENTER)
 
     icon_path = os.path.join(SCRIPT_DIR, "icon.png")
@@ -414,11 +579,114 @@ def launch_native_gui(dry_run: bool = False):
                         "node": node,
                         "vid_pid": vid_pid,
                         "name": f"{name}{id_label}",
+                        "dev_id": dev_id or 1168,
                         "conflict": conflict,
                     }
                 else:
                     res = {"connected": False, "conflict": conflict}
                 eval_js(f"window.onDeviceStatus({json.dumps(res)});")
+
+            elif action == "get_settings":
+                dev_info = find_keyboard_hidraw()
+                if not dev_info:
+                    eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
+                    return
+                node, _, _, dev_id = dev_info
+                dev = HidrawDevice(node)
+                try:
+                    settings = read_keyboard_settings(dev, dev_id or 1168)
+                    eval_js(f"window.onSettingsLoaded({json.dumps(settings)});")
+                finally:
+                    dev.close()
+
+            elif action == "set_clock":
+                dev_info = find_keyboard_hidraw()
+                if not dev_info:
+                    eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
+                    return
+                node, _, _, _ = dev_info
+                dev = HidrawDevice(node)
+                try:
+                    sync_clock(dev)
+                    now_str = datetime.datetime.now().strftime("%H:%M:%S")
+                    eval_js(f"window.onFeedback({json.dumps({'success': True, 'message': f'Relógio da telinha sincronizado ({now_str})!'})});")
+                finally:
+                    dev.close()
+
+            elif action == "set_debounce":
+                dev_info = find_keyboard_hidraw()
+                if not dev_info:
+                    eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
+                    return
+                val = int(data.get("value", 3))
+                node, _, _, dev_id = dev_info
+                dev = HidrawDevice(node)
+                try:
+                    write_debounce(dev, dev_id or 1168, val)
+                    eval_js(f"window.onFeedback({json.dumps({'success': True, 'message': f'Debounce configurado para {val} ms.'})});")
+                finally:
+                    dev.close()
+
+            elif action == "set_options":
+                dev_info = find_keyboard_hidraw()
+                if not dev_info:
+                    eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
+                    return
+                node, _, _, dev_id = dev_info
+                dev = HidrawDevice(node)
+                try:
+                    write_options(dev, dev_id or 1168, data)
+                    eval_js(f"window.onFeedback({json.dumps({'success': True, 'message': 'Interruptores de hardware atualizados!'})});")
+                finally:
+                    dev.close()
+
+            elif action == "set_sleep":
+                dev_info = find_keyboard_hidraw()
+                if not dev_info:
+                    eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
+                    return
+                node, _, _, dev_id = dev_info
+                dev = HidrawDevice(node)
+                try:
+                    rf = int(data.get("rf_sleep", 180))
+                    bt = int(data.get("bt_sleep", 180))
+                    drf = int(data.get("rf_deep", 1200))
+                    dbt = int(data.get("bt_deep", 1200))
+                    write_sleep_times(dev, dev_id or 1168, bt, rf, dbt, drf)
+                    eval_js(f"window.onFeedback({json.dumps({'success': True, 'message': 'Temporizadores de suspensão salvos!'})});")
+                finally:
+                    dev.close()
+
+            elif action == "set_led":
+                dev_info = find_keyboard_hidraw()
+                if not dev_info:
+                    eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
+                    return
+                node, _, _, dev_id = dev_info
+                dev = HidrawDevice(node)
+                try:
+                    mode = int(data.get("mode", 4))
+                    speed = int(data.get("speed", 2))
+                    brightness = int(data.get("brightness", 4))
+                    rainbow = bool(data.get("rainbow", False))
+                    rgb = data.get("rgb", [0, 255, 255])
+                    write_led_param(dev, dev_id or 1168, mode, speed, brightness, rainbow, rgb)
+                    eval_js(f"window.onFeedback({json.dumps({'success': True, 'message': 'Iluminação RGB aplicada!'})});")
+                finally:
+                    dev.close()
+
+            elif action == "factory_reset":
+                dev_info = find_keyboard_hidraw()
+                if not dev_info:
+                    eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
+                    return
+                node, _, _, dev_id = dev_info
+                dev = HidrawDevice(node)
+                try:
+                    write_factory_reset(dev, dev_id or 1168)
+                    eval_js(f"window.onFeedback({json.dumps({'success': True, 'message': 'Comando de restauração de fábrica enviado!'})});")
+                finally:
+                    dev.close()
 
             elif action == "inspect":
                 b64_data = data.get("image", "").split(",", 1)[-1]
@@ -517,7 +785,6 @@ def launch_fallback_browser_gui(dry_run: bool = False):
             pass
 
         def verify_token(self) -> bool:
-            # Token verificado no cabeçalho ou no query string
             auth_header = self.headers.get("X-Auth-Token")
             if auth_header and auth_header == token:
                 return True
@@ -536,7 +803,6 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                 ui_path = os.path.join(SCRIPT_DIR, "app_ui.html")
                 with open(ui_path, "r", encoding="utf-8") as f:
                     content = f.read()
-                # Injeta token no frontend para requisições subsequentes
                 injected = content.replace("</head>", f"<script>window.__AUTH_TOKEN__ = '{token}';</script></head>")
                 body = injected.encode("utf-8")
                 self.send_response(200)
@@ -557,25 +823,6 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                     self.wfile.write(b)
                 else:
                     self.send_error(404)
-
-            elif path == "/api/status":
-                if not self.verify_token():
-                    self.send_error(403)
-                    return
-                dev_info = find_keyboard_hidraw()
-                conflict = check_conflicting_tools()
-                if dev_info:
-                    node, vid_pid, name, dev_id = dev_info
-                    id_label = f" [ID: {dev_id}]" if dev_id else ""
-                    res = {"connected": True, "node": node, "vid_pid": vid_pid, "name": f"{name}{id_label}", "conflict": conflict}
-                else:
-                    res = {"connected": False, "conflict": conflict}
-                b = json.dumps(res).encode("utf-8")
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.send_header("Content-Length", str(len(b)))
-                self.end_headers()
-                self.wfile.write(b)
             else:
                 self.send_error(404)
 
@@ -587,10 +834,101 @@ def launch_fallback_browser_gui(dry_run: bool = False):
             parsed = urllib.parse.urlparse(self.path)
             content_len = int(self.headers.get("Content-Length", 0))
             raw_body = self.rfile.read(content_len)
+            payload = json.loads(raw_body.decode("utf-8")) if raw_body else {}
 
-            if parsed.path == "/api/inspect":
+            def send_json(data):
+                b = json.dumps(data).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(b)))
+                self.end_headers()
+                self.wfile.write(b)
+
+            if parsed.path == "/api/status":
+                dev_info = find_keyboard_hidraw()
+                conflict = check_conflicting_tools()
+                if dev_info:
+                    node, vid_pid, name, dev_id = dev_info
+                    id_label = f" [ID: {dev_id}]" if dev_id else ""
+                    send_json({"connected": True, "node": node, "vid_pid": vid_pid, "name": f"{name}{id_label}", "dev_id": dev_id or 1168, "conflict": conflict})
+                else:
+                    send_json({"connected": False, "conflict": conflict})
+
+            elif parsed.path == "/api/get_settings":
+                dev_info = find_keyboard_hidraw()
+                if dev_info:
+                    node, _, _, dev_id = dev_info
+                    dev = HidrawDevice(node)
+                    try:
+                        s = read_keyboard_settings(dev, dev_id or 1168)
+                        send_json(s)
+                    finally:
+                        dev.close()
+                else:
+                    send_json({"error": "not connected"})
+
+            elif parsed.path == "/api/set_clock":
+                dev_info = find_keyboard_hidraw()
+                if dev_info:
+                    dev = HidrawDevice(dev_info[0])
+                    try:
+                        sync_clock(dev)
+                        send_json({"success": True, "message": "Relógio sincronizado!"})
+                    finally:
+                        dev.close()
+
+            elif parsed.path == "/api/set_debounce":
+                dev_info = find_keyboard_hidraw()
+                if dev_info:
+                    dev = HidrawDevice(dev_info[0])
+                    try:
+                        write_debounce(dev, dev_info[3] or 1168, int(payload.get("value", 3)))
+                        send_json({"success": True, "message": "Debounce salvo!"})
+                    finally:
+                        dev.close()
+
+            elif parsed.path == "/api/set_options":
+                dev_info = find_keyboard_hidraw()
+                if dev_info:
+                    dev = HidrawDevice(dev_info[0])
+                    try:
+                        write_options(dev, dev_info[3] or 1168, payload)
+                        send_json({"success": True, "message": "Opções salvas!"})
+                    finally:
+                        dev.close()
+
+            elif parsed.path == "/api/set_sleep":
+                dev_info = find_keyboard_hidraw()
+                if dev_info:
+                    dev = HidrawDevice(dev_info[0])
+                    try:
+                        write_sleep_times(dev, dev_info[3] or 1168, payload.get("bt_sleep", 180), payload.get("rf_sleep", 180), payload.get("bt_deep", 1200), payload.get("rf_deep", 1200))
+                        send_json({"success": True, "message": "Temporizadores salvos!"})
+                    finally:
+                        dev.close()
+
+            elif parsed.path == "/api/set_led":
+                dev_info = find_keyboard_hidraw()
+                if dev_info:
+                    dev = HidrawDevice(dev_info[0])
+                    try:
+                        write_led_param(dev, dev_info[3] or 1168, payload.get("mode", 4), payload.get("speed", 2), payload.get("brightness", 4), payload.get("rainbow", False), payload.get("rgb", [0, 255, 255]))
+                        send_json({"success": True, "message": "Iluminação aplicada!"})
+                    finally:
+                        dev.close()
+
+            elif parsed.path == "/api/factory_reset":
+                dev_info = find_keyboard_hidraw()
+                if dev_info:
+                    dev = HidrawDevice(dev_info[0])
+                    try:
+                        write_factory_reset(dev, dev_info[3] or 1168)
+                        send_json({"success": True, "message": "Restauração de fábrica enviada!"})
+                    finally:
+                        dev.close()
+
+            elif parsed.path == "/api/inspect":
                 try:
-                    payload = json.loads(raw_body.decode("utf-8"))
                     b64_data = payload.get("image", "").split(",", 1)[-1]
                     img_bytes = base64.b64decode(b64_data)
                     im = Image.open(io.BytesIO(img_bytes))
@@ -608,13 +946,7 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                     }
                 except Exception as e:
                     resp = {"ok": False, "error": str(e)}
-
-                b = json.dumps(resp).encode("utf-8")
-                self.send_response(200)
-                self.send_header("Content-Type", "application/json")
-                self.send_header("Content-Length", str(len(b)))
-                self.end_headers()
-                self.wfile.write(b)
+                send_json(resp)
 
             elif parsed.path == "/api/upload":
                 self.send_response(200)
@@ -631,7 +963,6 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                         pass
 
                 try:
-                    payload = json.loads(raw_body.decode("utf-8"))
                     b64_data = payload.get("image", "").split(",", 1)[-1]
                     delay = int(payload.get("delay", 40))
                     max_frames = int(payload.get("max_frames", 60))
@@ -675,7 +1006,7 @@ def launch_fallback_browser_gui(dry_run: bool = False):
         subprocess.Popen([
             chrome_bin,
             f"--app={url}",
-            "--window-size=680,820",
+            "--window-size=700,840",
             f"--user-data-dir={profile_dir}"
         ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     else:
@@ -695,7 +1026,7 @@ def launch_fallback_browser_gui(dry_run: bool = False):
 # ==============================================================================
 def run_cli(args):
     print("=" * 60)
-    print("  Attack Shark K86 - Carregador de GIF / Imagem (Modo CLI)")
+    print("  Attack Shark K86 - Carregador & Configurador (Modo CLI)")
     print("=" * 60)
 
     found = find_keyboard_hidraw()
@@ -740,13 +1071,13 @@ def run_cli(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Envia GIFs animados ou imagens estáticas para a tela (240x135) do teclado Attack Shark K86.",
+        description="Attack Shark K86 Screen Uploader & Hardware Configurator.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("file", nargs="?", default=None, help="Caminho do arquivo de imagem/GIF. Se omitido, abre a janela (GUI nativa).")
     parser.add_argument("--gui", action="store_true", help="Força a abertura da interface gráfica nativa.")
     parser.add_argument("--dry-run", action="store_true", help="Executa todo o processamento e verificação de hardware sem gravar na flash.")
-    parser.add_argument("--version", action="version", version=f"Attack Shark K86 Screen Uploader {__version__}")
+    parser.add_argument("--version", action="version", version=f"Attack Shark K86 Configurator {__version__}")
     parser.add_argument("--delay", type=int, default=None, help="Delay/velocidade entre quadros (0-255).")
     parser.add_argument("--max-frames", type=int, default=60, help="Limite máximo de quadros (padrão: 60).")
     parser.add_argument("--step", type=int, default=None, help="Amostragem de quadros.")
