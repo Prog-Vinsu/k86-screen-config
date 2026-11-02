@@ -959,6 +959,65 @@
         </button>
       </div>
     </div>
+    <!-- Side LED Lighting Panel -->
+    <div class="panel">
+      <div class="panel-title">🌈 Iluminação das Barras Laterais (Side LEDs)</div>
+      <p style="font-size: 0.8rem; color: var(--muted);">Controle dedicado das fitas de LED nas bordas esquerda e direita do Attack Shark K86.</p>
+
+      <div class="control-group">
+        <label class="control-label">Modo dos LEDs Laterais:</label>
+        <select id="selSledMode">
+          <option value="0">Desligado (Off)</option>
+          <option value="1">Estático (Static)</option>
+          <option value="2">Respiração (Breathing)</option>
+          <option value="3">Neon (Arco-íris Dinâmico)</option>
+          <option value="4">Onda (Wave)</option>
+          <option value="5">Cobra (Snake)</option>
+        </select>
+      </div>
+
+      <div class="controls-grid" style="border: none; padding-top: 6px;">
+        <div class="control-group">
+          <label class="control-label">Modo de Cor Lateral:</label>
+          <div class="radio-group">
+            <div class="radio-btn active" id="btnSledColorCustom">Cor Fixa</div>
+            <div class="radio-btn" id="btnSledColorRainbow">Arco-íris</div>
+          </div>
+        </div>
+
+        <div class="control-group" id="groupSledCustomColor">
+          <label class="control-label">Cor das Barras:</label>
+          <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
+            <div id="sledColorChip" class="color-chip" style="width: 28px; height: 28px; background: #00ffff;"></div>
+            <span id="labelSledColorHex" style="font-family: monospace; font-size: 0.85rem; font-weight: 600;">#00FFFF</span>
+            <button id="btnCopyMainColor" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.72rem; margin-left: auto;">Copiar Cor Principal</button>
+          </div>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            Brilho Lateral:
+            <span id="labelSledBrightness">4 (Máx)</span>
+          </div>
+          <input type="range" id="sliderSledBrightness" min="0" max="4" value="4">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            Velocidade Lateral:
+            <span id="labelSledSpeed">2</span>
+          </div>
+          <input type="range" id="sliderSledSpeed" min="0" max="4" value="2">
+        </div>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; padding-top: 10px;">
+        <button id="btnApplySled" class="btn btn-primary">
+          Aplicar LEDs Laterais
+        </button>
+      </div>
+    </div>
+
   </div>
 
   <!-- TAB 4: DEVICE INFO & MAINTENANCE -->
@@ -1119,6 +1178,24 @@
 
         if (s.led.rgb && s.led.rgb.length === 3) {
           setSelectedColor(s.led.rgb[0], s.led.rgb[1], s.led.rgb[2], true);
+        }
+      }
+      // Side LED (SLEDPARAM)
+      if (s.sled) {
+        document.getElementById('selSledMode').value = s.sled.mode;
+        document.getElementById('sliderSledBrightness').value = s.sled.brightness;
+        document.getElementById('labelSledBrightness').textContent = s.sled.brightness === 4 ? '4 (Máx)' : s.sled.brightness;
+        document.getElementById('sliderSledSpeed').value = s.sled.speed;
+        document.getElementById('labelSledSpeed').textContent = s.sled.speed;
+
+        isSledRainbow = !!s.sled.rainbow;
+        updateSledRainbowButtons();
+
+        if (s.sled.rgb && s.sled.rgb.length === 3) {
+          currentSledRgb = [...s.sled.rgb];
+          const hex = '#' + s.sled.rgb.map(c => c.toString(16).padStart(2, '0')).join('');
+          document.getElementById('sledColorChip').style.background = hex;
+          document.getElementById('labelSledColorHex').textContent = hex.toUpperCase();
         }
       }
     };
@@ -1467,6 +1544,61 @@
         rgb: currentRgb
       });
     });
+    // Side LED Controls & Listeners
+    let isSledRainbow = false;
+    let currentSledRgb = [0, 255, 255];
+
+    function updateSledRainbowButtons() {
+      if (isSledRainbow) {
+        document.getElementById('btnSledColorRainbow').classList.add('active');
+        document.getElementById('btnSledColorCustom').classList.remove('active');
+        document.getElementById('groupSledCustomColor').style.opacity = '0.35';
+        document.getElementById('groupSledCustomColor').style.pointerEvents = 'none';
+      } else {
+        document.getElementById('btnSledColorCustom').classList.add('active');
+        document.getElementById('btnSledColorRainbow').classList.remove('active');
+        document.getElementById('groupSledCustomColor').style.opacity = '1.0';
+        document.getElementById('groupSledCustomColor').style.pointerEvents = 'auto';
+      }
+    }
+
+    document.getElementById('btnSledColorCustom').addEventListener('click', () => {
+      isSledRainbow = false;
+      updateSledRainbowButtons();
+    });
+    document.getElementById('btnSledColorRainbow').addEventListener('click', () => {
+      isSledRainbow = true;
+      updateSledRainbowButtons();
+    });
+
+    document.getElementById('btnCopyMainColor').addEventListener('click', () => {
+      currentSledRgb = [...currentRgb];
+      const hex = '#' + currentSledRgb.map(c => c.toString(16).padStart(2, '0')).join('');
+      document.getElementById('sledColorChip').style.background = hex;
+      document.getElementById('labelSledColorHex').textContent = hex.toUpperCase();
+    });
+
+    const sliderSledBrightness = document.getElementById('sliderSledBrightness');
+    sliderSledBrightness.addEventListener('input', () => {
+      const v = parseInt(sliderSledBrightness.value, 10);
+      document.getElementById('labelSledBrightness').textContent = v === 4 ? '4 (Máx)' : v;
+    });
+
+    const sliderSledSpeed = document.getElementById('sliderSledSpeed');
+    sliderSledSpeed.addEventListener('input', () => {
+      document.getElementById('labelSledSpeed').textContent = sliderSledSpeed.value;
+    });
+
+    document.getElementById('btnApplySled').addEventListener('click', () => {
+      sendToPython('set_side_led', {
+        mode: parseInt(document.getElementById('selSledMode').value, 10),
+        speed: parseInt(sliderSledSpeed.value, 10),
+        brightness: parseInt(sliderSledBrightness.value, 10),
+        rainbow: isSledRainbow,
+        rgb: currentSledRgb
+      });
+    });
+
 
     // Tab 4: Reset
     document.getElementById('btnFactoryReset').addEventListener('click', () => {

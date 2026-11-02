@@ -25,10 +25,14 @@
   * **Debounce de Teclas:** Ajuste de latência de 1ms a 10ms.
   * **Interruptores de Hardware:** Win Lock, inversão WASD/Setas, desligar LEDs principais, desligar LEDs laterais.
   * **Temporizadores de Suspensão:** Configuração independente de economia de bateria para 2.4 GHz e Bluetooth.
-* **Controle de Iluminação RGB:**
+* **Controle de Iluminação RGB Principal:**
   * 18 modos e efeitos de animação (Estático, Respiração, Onda, Ondulação, Meteoro, etc.).
-  * Seletor de cores RGB ou modo Arco-íris dinâmico.
+  * Rodinha de cores HSV interativa + 14 atalhos de cores rápidas ou modo Arco-íris dinâmico.
   * Controle de brilho (0 a 4) e velocidade da animação (0 a 4).
+* **Iluminação RGB das Barras Laterais (Side LEDs - SLEDPARAM):**
+  * Controle dedicado das faixas de LED nas bordas do K86.
+  * 6 modos laterais: Desligado, Estático, Respiração, Neon, Onda e Cobra.
+  * Ajustes dedicados de velocidade, brilho e sincronização com a cor principal.
 * **Restauração de Fábrica:** Comando para redefinir as configurações internas para o padrão de fábrica.
 * **Modo CLI Integrado:** Execute sem argumentos para a janela gráfica ou passe o caminho do arquivo diretamente pelo terminal.
 * **Modo de Simulação (Dry-Run):** Testa conversão e comunicação com o hardware sem gravar na flash (`--dry-run`).

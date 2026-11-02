@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-11-02
+
+### Added
+- Full hardware configuration tabs: Screen, Device, Lighting, and Info.
+- Dedicated Side RGB lighting controls (SLEDPARAM opcode `0x08` / `0x88`) with 6 modes: Off, Static, Breathing, Neon, Wave, and Snake.
+- Interactive HSV Color Wheel canvas replacing native legacy color picker.
+- 14 quick color preset dots with single-click selection.
+- Onboard TFT screen clock synchronization via opcode `0x28`.
+- Key debounce latency adjustment (1ms - 10ms).
+- Hardware switches for Win Lock, WASD/Arrow swap, Backlight disable, and Side LEDs disable.
+- Sleep and Deep Sleep battery timeout controls for 2.4 GHz and Bluetooth.
+- Factory reset command (opcode `0x02` / `0x01`).
+
+### Fixed
+- Fixed select dropdown text visibility in WebKit2GTK on dark themes.
+- Fixed direct side light state synchronization when toggled from hardware options.
+
 ## [1.0.0] - 2026-11-02
 
 ### Added

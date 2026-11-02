@@ -249,8 +249,29 @@ def read_keyboard_settings(dev: HidrawDevice, dev_id: int) -> dict:
         "rgb": rgb,
     }
 
-    return {"debounce": deb, "options": options, "sleep": sleep, "led": led}
+    # 5. Side Light (SLEDPARAM 0x88)
+    p = bytearray(64)
+    p[0] = 0x88
+    checksum7(p)
+    r_sled = dev.roundtrip(bytes(p))
+    if r_sled and r_sled[0] == 0x88:
+        smode = r_sled[1]
+        sspeed = max(0, min(4, r_sled[2]))
+        sbrightness = max(0, min(4, r_sled[3]))
+        sflags4 = r_sled[4]
+        srainbow = (sflags4 & 0x0F) == 8 or smode == 3
+        srgb = [r_sled[5], r_sled[6], r_sled[7]]
+    else:
+        smode, sspeed, sbrightness, srainbow, srgb = 1, 2, 4, False, [0, 255, 255]
+    sled = {
+        "mode": smode,
+        "speed": sspeed,
+        "brightness": sbrightness,
+        "rainbow": srainbow,
+        "rgb": srgb,
+    }
 
+    return {"debounce": deb, "options": options, "sleep": sleep, "led": led, "sled": sled}
 
 def write_debounce(dev: HidrawDevice, dev_id: int, val_ms: int) -> bool:
     val_ms = max(1, min(10, val_ms))
@@ -322,28 +343,27 @@ def write_led_param(
     checksum8(p)
     dev.send_feature(bytes(p))
     return True
-def write_side_light(dev: HidrawDevice, dev_id: int, enabled: bool) -> bool:
+def write_sled_param(
+    dev: HidrawDevice, dev_id: int, mode: int, speed: int, brightness: int, rainbow: bool, rgb: list
+) -> bool:
     p = bytearray(64)
     p[0] = 0x08
-    if enabled:
-        p[1] = 1  # Mode Static ON
-        p[2] = 2  # Speed
-        p[3] = 4  # Max brightness
-        p[4] = 0x07 # Fixed color (or dazzle 0x08)
-        p[5] = 0
-        p[6] = 255
-        p[7] = 255
-    else:
-        p[1] = 0  # Mode 0 = OFF
-        p[2] = 2
-        p[3] = 0  # Zero brightness
-        p[4] = 0x07
-        p[5] = 0
-        p[6] = 0
-        p[7] = 0
+    p[1] = max(0, min(5, mode))
+    p[2] = max(0, min(4, speed))
+    p[3] = max(0, min(4, brightness))
+    p[4] = 0x08 if rainbow or mode == 3 else 0x07
+    p[5] = rgb[0] & 0xFF
+    p[6] = rgb[1] & 0xFF
+    p[7] = rgb[2] & 0xFF
     checksum8(p)
     dev.send_feature(bytes(p))
     return True
+
+def write_side_light(dev: HidrawDevice, dev_id: int, enabled: bool) -> bool:
+    if enabled:
+        return write_sled_param(dev, dev_id, mode=1, speed=2, brightness=4, rainbow=False, rgb=[0, 255, 255])
+    else:
+        return write_sled_param(dev, dev_id, mode=0, speed=2, brightness=0, rainbow=False, rgb=[0, 0, 0])
 
 
 
@@ -700,6 +720,24 @@ def launch_native_gui(dry_run: bool = False):
                     eval_js(f"window.onFeedback({json.dumps({'success': True, 'message': 'Iluminação RGB aplicada!'})});")
                 finally:
                     dev.close()
+            elif action == "set_side_led":
+                dev_info = find_keyboard_hidraw()
+                if not dev_info:
+                    eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
+                    return
+                node, _, _, dev_id = dev_info
+                dev = HidrawDevice(node)
+                try:
+                    mode = int(data.get("mode", 1))
+                    speed = int(data.get("speed", 2))
+                    brightness = int(data.get("brightness", 4))
+                    rainbow = bool(data.get("rainbow", False))
+                    rgb = data.get("rgb", [0, 255, 255])
+                    write_sled_param(dev, dev_id or 1168, mode, speed, brightness, rainbow, rgb)
+                    eval_js(f"window.onFeedback({json.dumps({'success': True, 'message': 'LEDs laterais atualizados!'})});")
+                finally:
+                    dev.close()
+
 
             elif action == "factory_reset":
                 dev_info = find_keyboard_hidraw()
@@ -944,6 +982,24 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                         send_json({"success": True, "message": "Iluminação aplicada!"})
                     finally:
                         dev.close()
+            elif parsed.path == "/api/set_side_led":
+                dev_info = find_keyboard_hidraw()
+                if dev_info:
+                    dev = HidrawDevice(dev_info[0])
+                    try:
+                        write_sled_param(
+                            dev,
+                            dev_info[3] or 1168,
+                            payload.get("mode", 1),
+                            payload.get("speed", 2),
+                            payload.get("brightness", 4),
+                            payload.get("rainbow", False),
+                            payload.get("rgb", [0, 255, 255]),
+                        )
+                        send_json({"success": True, "message": "LEDs laterais aplicados!"})
+                    finally:
+                        dev.close()
+
 
             elif parsed.path == "/api/factory_reset":
                 dev_info = find_keyboard_hidraw()

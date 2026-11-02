@@ -25,10 +25,14 @@
   * **Debounce Adjustment:** 1ms to 10ms key debounce response time.
   * **Hardware Toggles:** Win Lock, WASD / Arrow key swap, Backlight disable, Side LED disable.
   * **Battery Sleep Timers:** Independent 2.4 GHz and Bluetooth sleep and deep sleep timeouts.
-* **RGB Lighting Control:**
+* **Main Backlight RGB Control:**
   * 18 backlight animation modes (Static, Breathing, Wave, Ripple, Meteor, etc.).
-  * Full RGB color picker or dynamic Rainbow mode.
+  * Interactive HSV Color Wheel + 14 quick color presets or dynamic Rainbow mode.
   * Brightness (0-4) and Effect speed (0-4) sliders.
+* **Side Strip RGB Control (SLEDPARAM):**
+  * Dedicated control over left and right edge light bars.
+  * 6 side lighting modes: Off, Static, Breathing, Neon, Wave, and Snake.
+  * Dedicated brightness, speed, and color synchronization with the main backlight.
 * **Factory Reset:** Send onboard reset command to restore factory defaults.
 * **Dual Operation (GUI + CLI):** Launch without arguments for the visual window, or pass a file path directly for instant command-line uploads.
 * **Dry-Run Mode:** Test image conversion and hardware communication without writing to flash (`--dry-run`).
