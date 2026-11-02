@@ -1,0 +1,33 @@
+name: New Board or Revision Request
+description: Request support for a keyboard sharing the ROYUAN/YC chipset
+title: "[Board]: "
+labels: ["enhancement", "board-support"]
+body:
+  - type: input
+    id: board_name
+    attributes:
+      label: Keyboard Model / Brand
+      placeholder: "e.g., Attack Shark K86 Revision 3, Epomaker RT100"
+    validations:
+      required: true
+  - type: input
+    id: usb_id
+    attributes:
+      label: USB Vendor & Product ID (lsusb)
+      placeholder: "e.g., 3151:5056"
+    validations:
+      required: true
+  - type: input
+    id: screen_resolution
+    attributes:
+      label: Screen Resolution & Controller
+      placeholder: "e.g., 240x135, controller yc3123"
+    validations:
+      required: false
+  - type: textarea
+    id: additional_info
+    attributes:
+      label: Additional Notes
+      description: Any link to specs, sharkfin board record, or observed behavior.
+    validations:
+      required: false

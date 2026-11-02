@@ -1,0 +1,40 @@
+name: Bug report
+description: Create a report to help improve Attack Shark K86 Screen Uploader
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue! Please provide detailed diagnostic info below.
+  - type: input
+    id: lsusb_output
+    attributes:
+      label: lsusb output for the keyboard
+      description: Run `lsusb` and paste the line corresponding to your keyboard (e.g. `Bus 001 Device 007: ID 3151:4015 ROYUAN Gaming Keyboard`).
+      placeholder: "Bus ... Device ...: ID 3151:..."
+    validations:
+      required: true
+  - type: input
+    id: device_id
+    attributes:
+      label: Detected Device ID
+      description: Run `python3 k86_gif_uploader.py --dry-run <any_image.png>` and paste the detected Device ID (e.g. `1168` or `2730`).
+      placeholder: "1168"
+    validations:
+      required: false
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem Description
+      description: Clear and concise description of what happened.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Terminal output / Logs
+      description: Paste any error messages or stack traces.
+      render: shell
+    validations:
+      required: false

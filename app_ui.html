@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attack Shark K86 - Screen Uploader</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --card: #161b22;
+      --card-hover: #1f242c;
+      --border: #30363d;
+      --accent: #58a6ff;
+      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+      --accent-hover: linear-gradient(135deg, #4f46e5 0%, #0891b2 100%);
+      --success: #238636;
+      --error: #da3633;
+      --text: #f0f6fc;
+      --muted: #8b949e;
+      --radius: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      user-select: none;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding: 20px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+
+    .brand h1 {
+      font-size: 1.15rem;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+    }
+
+    .brand span {
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: block;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background: rgba(139, 148, 158, 0.15);
+      border: 1px solid var(--border);
+    }
+
+    .status-badge.connected {
+      background: rgba(46, 160, 67, 0.15);
+      border-color: rgba(46, 160, 67, 0.4);
+      color: #3fb950;
+    }
+
+    .status-badge.error {
+      background: rgba(248, 81, 73, 0.15);
+      border-color: rgba(248, 81, 73, 0.4);
+      color: #f85149;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    /* Drop Zone */
+    .dropzone {
+      border: 2px dashed var(--border);
+      background: var(--card);
+      border-radius: var(--radius);
+      padding: 30px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: var(--card-hover);
+      transform: translateY(-1px);
+    }
+
+    .dropzone svg {
+      width: 44px;
+      height: 44px;
+      stroke: var(--accent);
+      stroke-width: 1.8;
+      fill: none;
+    }
+
+    .dropzone-text {
+      font-size: 0.95rem;
+      font-weight: 500;
+    }
+
+    .dropzone-subtext {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    /* Preview and Settings Panel */
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .preview-container {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .screen-bezel {
+      width: 240px;
+      height: 135px;
+      background: #000;
+      border: 3px solid #30363d;
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 210, 255, 0.2);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .screen-bezel img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      image-rendering: pixelated;
+    }
+
+    .file-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 0.85rem;
+    }
+
+    .file-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      word-break: break-all;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .badge {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      color: var(--text);
+    }
+
+    /* Controls Grid */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .control-label {
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .control-label span {
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      accent-color: #6366f1;
+      cursor: pointer;
+    }
+
+    .radio-group {
+      display: flex;
+      gap: 6px;
+    }
+
+    .radio-btn {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--card);
+      color: var(--muted);
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .radio-btn.active {
+      background: var(--accent-gradient);
+      color: #fff;
+      border-color: transparent;
+      font-weight: 600;
+    }
+
+    /* Progress & Action */
+    .btn-upload {
+      background: var(--accent-gradient);
+      color: #fff;
+      border: none;
+      padding: 12px;
+      border-radius: var(--radius);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-upload:hover:not(:disabled) {
+      background: var(--accent-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-upload:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 8px;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--accent-gradient);
+      transition: width 0.15s ease;
+    }
+
+    .progress-info {
+      font-size: 0.8rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      margin-top: 6px;
+    }
+
+    .alert {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      display: none;
+    }
+
+    .alert.success {
+      display: flex;
+      background: rgba(46, 160, 67, 0.15);
+      border: 1px solid rgba(46, 160, 67, 0.4);
+      color: #3fb950;
+    }
+
+    .alert.error {
+      display: flex;
+      background: rgba(248, 81, 73, 0.15);
+      border: 1px solid rgba(248, 81, 73, 0.4);
+      color: #f85149;
+    }
+
+    footer {
+      margin-top: auto;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .links-group {
+      display: flex;
+      gap: 12px;
+    }
+
+    .links-group a {
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .links-group a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <img id="appIcon" src="icon.png" alt="Icon">
+      <div>
+        <h1>Attack Shark K86 Screen Uploader</h1>
+        <span>Gerenciador Nativo de Tela TFT 240x135</span>
+      </div>
+    </div>
+    <div id="deviceBadge" class="status-badge">
+      <div class="status-dot"></div>
+      <span id="deviceText">Buscando teclado...</span>
+    </div>
+  </header>
+
+  <!-- Drop Zone -->
+  <div id="dropzone" class="dropzone">
+    <svg viewBox="0 0 24 24">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+    </svg>
+    <div class="dropzone-text">Arraste e solte seu GIF ou imagem aqui</div>
+    <div class="dropzone-subtext">ou clique para selecionar (.gif, .png, .jpg)</div>
+    <input type="file" id="fileInput" accept="image/gif,image/png,image/jpeg,image/webp" style="display: none;">
+  </div>
+
+  <!-- Preview and Controls Panel -->
+  <div id="previewPanel" class="panel" style="display: none;">
+    <div class="preview-container">
+      <div class="screen-bezel">
+        <img id="previewImg" src="" alt="Preview">
+      </div>
+      <div class="file-details">
+        <div id="fileName" class="file-name">animacao.gif</div>
+        <div id="fileDims" style="color: var(--muted);">240x135 px</div>
+        <div class="badge-row">
+          <div id="badgeFrames" class="badge">-- quadros</div>
+          <div id="badgeDuration" class="badge">-- ms/quadro</div>
+          <div id="badgeSize" class="badge">-- KB</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls-grid">
+      <div class="control-group">
+        <div class="control-label">
+          Velocidade / Delay:
+          <span id="delayVal">40</span>
+        </div>
+        <input type="range" id="delaySlider" min="5" max="150" value="40">
+        <span style="font-size: 0.7rem; color: var(--muted);">Menor = mais rápido (recomendado 25 a 60)</span>
+      </div>
+
+      <div class="control-group">
+        <div class="control-label">
+          Limite de Quadros:
+          <span id="framesVal">60</span>
+        </div>
+        <input type="range" id="framesSlider" min="10" max="90" value="60">
+        <span style="font-size: 0.7rem; color: var(--muted);">Pula quadros se o GIF for longo</span>
+      </div>
+
+      <div class="control-group" style="grid-column: span 2;">
+        <div class="control-label">Enquadramento:</div>
+        <div class="radio-group">
+          <div class="radio-btn active" data-fit="crop">Preencher (Crop)</div>
+          <div class="radio-btn" data-fit="contain">Conter (Barras Pretas)</div>
+          <div class="radio-btn" data-fit="stretch">Esticar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Alert -->
+  <div id="alertBox" class="alert"></div>
+
+  <!-- Progress Bar & Upload Button -->
+  <div style="display: flex; flex-direction: column; gap: 8px;">
+    <button id="btnUpload" class="btn-upload" disabled>
+      ⚡ Enviar para a Telinha do Teclado
+    </button>
+    <div id="progressContainer" class="progress-bar-container">
+      <div id="progressBar" class="progress-bar"></div>
+    </div>
+    <div id="progressInfo" class="progress-info" style="display: none;">
+      <span id="progressMsg">Iniciando...</span>
+      <span id="progressPct">0%</span>
+    </div>
+  </div>
+
+  <footer>
+    <span>Resolução nativa: 240x135 (16:9)</span>
+    <div class="links-group">
+      <a href="#" onclick="openExternal('https://br.pinterest.com/mayssarf/gifs-for-attack-shark-k86'); return false;">Coleção Pinterest</a>
+      <a href="#" onclick="openExternal('https://github.com/marcel-pietron/k86-screen-frames'); return false;">GIFs no GitHub</a>
+      <a href="#" onclick="openExternal('https://giphy.com/search/pixel-art-loop'); return false;">Giphy Pixel Art</a>
+    </div>
+  </footer>
+
+  <script>
+    // State variables
+    let currentFileBase64 = null;
+    let currentFitMode = 'crop';
+    let isUploading = false;
+    const isNativeBridge = !!(window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pybridge);
+
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const previewPanel = document.getElementById('previewPanel');
+    const previewImg = document.getElementById('previewImg');
+    const fileName = document.getElementById('fileName');
+    const fileDims = document.getElementById('fileDims');
+    const badgeFrames = document.getElementById('badgeFrames');
+    const badgeDuration = document.getElementById('badgeDuration');
+    const badgeSize = document.getElementById('badgeSize');
+
+    const delaySlider = document.getElementById('delaySlider');
+    const delayVal = document.getElementById('delayVal');
+    const framesSlider = document.getElementById('framesSlider');
+    const framesVal = document.getElementById('framesVal');
+
+    const btnUpload = document.getElementById('btnUpload');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
+    const progressInfo = document.getElementById('progressInfo');
+    const progressMsg = document.getElementById('progressMsg');
+    const progressPct = document.getElementById('progressPct');
+    const alertBox = document.getElementById('alertBox');
+    const deviceBadge = document.getElementById('deviceBadge');
+    const deviceText = document.getElementById('deviceText');
+
+    // IPC Messaging Helper (Native WebKit Bridge or HTTP Fallback)
+    function sendToPython(action, data = {}) {
+      const msg = { action, ...data };
+      if (isNativeBridge) {
+        window.webkit.messageHandlers.pybridge.postMessage(JSON.stringify(msg));
+      } else {
+        // HTTP Server fallback
+        fetch('/api/' + action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(msg)
+        }).catch(console.error);
+      }
+    }
+
+    function openExternal(url) {
+      if (isNativeBridge) {
+        sendToPython('open_external', { url });
+      } else {
+        window.open(url, '_blank');
+      }
+    }
+
+    // Callbacks invoked directly from Python in Native Mode
+    window.onDeviceStatus = function(d) {
+      if (d.connected) {
+        deviceBadge.className = 'status-badge connected';
+        deviceText.textContent = `Teclado: ${d.name} (${d.node})`;
+      } else {
+        deviceBadge.className = 'status-badge error';
+        deviceText.textContent = 'Teclado não detectado (conecte o cabo USB)';
+      }
+    };
+
+    window.onInspectResult = function(data) {
+      if (data.ok) {
+        fileDims.textContent = `${data.width}x${data.height} px`;
+        badgeFrames.textContent = `${data.frames} quadro(s)`;
+        badgeDuration.textContent = `~${data.duration} ms/quadro`;
+        delaySlider.value = data.suggested_delay;
+        delayVal.textContent = data.suggested_delay;
+      }
+    };
+
+    window.onUploadProgress = function(msg) {
+      if (msg.status === 'progress') {
+        const pct = msg.pct.toFixed(1) + '%';
+        progressBar.style.width = pct;
+        progressPct.textContent = pct;
+        progressMsg.textContent = msg.msg;
+      } else if (msg.status === 'done') {
+        progressBar.style.width = '100%';
+        progressPct.textContent = '100%';
+        progressMsg.textContent = 'Concluído!';
+        showAlert('success', '✓ Sucesso! O GIF foi gravado na telinha do seu teclado.');
+        isUploading = false;
+        btnUpload.disabled = false;
+      } else if (msg.status === 'error') {
+        showAlert('error', '✗ Erro: ' + msg.msg);
+        isUploading = false;
+        btnUpload.disabled = false;
+      }
+    };
+
+    // Drag and Drop
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        loadFile(e.dataTransfer.files[0]);
+      }
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        loadFile(e.target.files[0]);
+      }
+    });
+
+    // Fit mode buttons
+    document.querySelectorAll('.radio-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFitMode = btn.dataset.fit;
+        previewImg.style.objectFit = currentFitMode === 'contain' ? 'contain' : (currentFitMode === 'stretch' ? 'fill' : 'cover');
+      });
+    });
+
+    // Sliders
+    delaySlider.addEventListener('input', () => {
+      delayVal.textContent = delaySlider.value;
+    });
+    framesSlider.addEventListener('input', () => {
+      framesVal.textContent = framesSlider.value;
+    });
+
+    function loadFile(file) {
+      fileName.textContent = file.name;
+      badgeSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+      hideAlert();
+
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        currentFileBase64 = e.target.result;
+        previewImg.src = currentFileBase64;
+        previewPanel.style.display = 'flex';
+        btnUpload.disabled = false;
+
+        if (isNativeBridge) {
+          sendToPython('inspect', { image: currentFileBase64 });
+        } else {
+          fetch('/api/inspect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: currentFileBase64 })
+          })
+          .then(res => res.json())
+          .then(window.onInspectResult)
+          .catch(() => {});
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function showAlert(type, message) {
+      alertBox.className = `alert ${type}`;
+      alertBox.textContent = message;
+      alertBox.style.display = 'block';
+    }
+
+    function hideAlert() {
+      alertBox.style.display = 'none';
+    }
+
+    // Upload Action
+    btnUpload.addEventListener('click', async () => {
+      if (!currentFileBase64 || isUploading) return;
+      isUploading = true;
+      btnUpload.disabled = true;
+      hideAlert();
+
+      progressContainer.style.display = 'block';
+      progressInfo.style.display = 'flex';
+      progressBar.style.width = '0%';
+      progressPct.textContent = '0%';
+      progressMsg.textContent = 'Preparando quadros...';
+
+      const uploadPayload = {
+        image: currentFileBase64,
+        delay: parseInt(delaySlider.value, 10),
+        max_frames: parseInt(framesSlider.value, 10),
+        fit: currentFitMode
+      };
+
+      if (isNativeBridge) {
+        sendToPython('upload', uploadPayload);
+      } else {
+        // Fallback HTTP streaming reader
+        try {
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(uploadPayload)
+          });
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const parts = buffer.split('\n\n');
+            buffer = parts.pop();
+            for (const part of parts) {
+              if (part.startsWith('data: ')) {
+                window.onUploadProgress(JSON.parse(part.slice(6)));
+              }
+            }
+          }
+        } catch (err) {
+          showAlert('error', 'Falha na comunicação: ' + err);
+          isUploading = false;
+          btnUpload.disabled = false;
+        }
+      }
+    });
+
+    // Check device status
+    function checkDevice() {
+      if (isNativeBridge) {
+        sendToPython('status');
+      } else {
+        fetch('/api/status')
+          .then(r => r.json())
+          .then(window.onDeviceStatus)
+          .catch(() => {});
+      }
+    }
+
+    checkDevice();
+    setInterval(checkDevice, 3000);
+  </script>
+</body>
+</html>

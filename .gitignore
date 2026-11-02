@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Preview images generated during testing
+k86_preview_*.gif
+k86_preview_*.png
+
+# Packaging / virtual environments
+dist/
+build/
+*.egg-info/
+.venv/
+venv/
+env/
+
+# IDE / Editors
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
