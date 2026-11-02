@@ -322,6 +322,29 @@ def write_led_param(
     checksum8(p)
     dev.send_feature(bytes(p))
     return True
+def write_side_light(dev: HidrawDevice, dev_id: int, enabled: bool) -> bool:
+    p = bytearray(64)
+    p[0] = 0x08
+    if enabled:
+        p[1] = 1  # Mode Static ON
+        p[2] = 2  # Speed
+        p[3] = 4  # Max brightness
+        p[4] = 0x07 # Fixed color (or dazzle 0x08)
+        p[5] = 0
+        p[6] = 255
+        p[7] = 255
+    else:
+        p[1] = 0  # Mode 0 = OFF
+        p[2] = 2
+        p[3] = 0  # Zero brightness
+        p[4] = 0x07
+        p[5] = 0
+        p[6] = 0
+        p[7] = 0
+    checksum8(p)
+    dev.send_feature(bytes(p))
+    return True
+
 
 
 def write_factory_reset(dev: HidrawDevice, dev_id: int) -> bool:
@@ -636,6 +659,9 @@ def launch_native_gui(dry_run: bool = False):
                 dev = HidrawDevice(node)
                 try:
                     write_options(dev, dev_id or 1168, data)
+                    # Sincroniza também o estado físico das barras laterais via SLEDPARAM 0x08
+                    if "side_led_off" in data:
+                        write_side_light(dev, dev_id or 1168, enabled=not data.get("side_led_off"))
                     eval_js(f"window.onFeedback({json.dumps({'success': True, 'message': 'Interruptores de hardware atualizados!'})});")
                 finally:
                     dev.close()
@@ -893,6 +919,8 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                     dev = HidrawDevice(dev_info[0])
                     try:
                         write_options(dev, dev_info[3] or 1168, payload)
+                        if "side_led_off" in payload:
+                            write_side_light(dev, dev_info[3] or 1168, enabled=not payload.get("side_led_off"))
                         send_json({"success": True, "message": "Opções salvas!"})
                     finally:
                         dev.close()

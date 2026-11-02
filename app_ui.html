@@ -304,17 +304,31 @@
     }
 
     select, input[type="text"], input[type="number"] {
-      background: #0d1117;
+      -webkit-appearance: none;
+      appearance: none;
+      background-color: #161b22;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 14px;
       border: 1px solid var(--border);
       border-radius: 6px;
-      color: var(--text);
-      padding: 7px 10px;
+      color: #f0f6fc;
+      padding: 8px 32px 8px 12px;
       font-size: 0.85rem;
       outline: none;
+      cursor: pointer;
+    }
+
+    select option {
+      background-color: #161b22;
+      color: #f0f6fc;
+      padding: 8px;
     }
 
     select:focus, input:focus {
       border-color: var(--accent);
+      background-color: #1c2128;
     }
 
     .radio-group {
@@ -508,31 +522,87 @@
       color: #f85149;
     }
 
-    /* Color picker layout */
-    .color-row {
+    /* Color Picker & Wheel Layout */
+    .color-section {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      background: #11151c;
+      padding: 12px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      margin-top: 6px;
+    }
+
+    .wheel-container {
+      position: relative;
+      width: 140px;
+      height: 140px;
+      flex-shrink: 0;
+    }
+
+    #colorWheelCanvas {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      cursor: crosshair;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    #wheelCursor {
+      position: absolute;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 4px rgba(0,0,0,0.8);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      left: 70px;
+      top: 70px;
+    }
+
+    .color-presets-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .color-preview-large {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
-    input[type="color"] {
-      -webkit-appearance: none;
-      border: 1px solid var(--border);
+    .color-chip {
+      width: 32px;
+      height: 32px;
       border-radius: 8px;
-      width: 44px;
-      height: 36px;
+      border: 2px solid var(--border);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      background: #00ffff;
+      flex-shrink: 0;
+    }
+
+    .color-presets {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 5px;
+    }
+
+    .preset-dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
       cursor: pointer;
-      background: transparent;
-      padding: 0;
+      border: 1px solid rgba(255,255,255,0.15);
+      transition: transform 0.15s, border-color 0.15s;
     }
 
-    input[type="color"]::-webkit-color-swatch-wrapper {
-      padding: 0;
-    }
-
-    input[type="color"]::-webkit-color-swatch {
-      border: none;
-      border-radius: 7px;
+    .preset-dot:hover {
+      transform: scale(1.15);
+      border-color: #fff;
     }
 
     /* Info Table */
@@ -837,23 +907,36 @@
         </select>
       </div>
 
-      <div class="controls-grid" style="border: none; padding-top: 0;">
-        <div class="control-group">
-          <label class="control-label">Modo de Cor:</label>
-          <div class="radio-group">
+      <div class="control-group" style="padding-top: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label class="control-label" style="margin: 0;">Modo de Cor:</label>
+          <div class="radio-group" style="max-width: 200px;">
             <div class="radio-btn active" id="btnColorCustom" data-rainbow="0">Cor Fixa</div>
             <div class="radio-btn" id="btnColorRainbow" data-rainbow="1">Arco-íris</div>
           </div>
         </div>
 
-        <div class="control-group" id="groupCustomColor">
-          <label class="control-label">Cor Selecionada:</label>
-          <div class="color-row">
-            <input type="color" id="inputLedColor" value="#00ffff">
-            <span id="labelColorHex" style="font-family: monospace; font-size: 0.85rem;">#00FFFF</span>
+        <!-- Custom Color Section with Wheel and Presets -->
+        <div id="groupCustomColor" class="color-section">
+          <div class="wheel-container">
+            <canvas id="colorWheelCanvas" width="140" height="140"></canvas>
+            <div id="wheelCursor"></div>
+          </div>
+          <div class="color-presets-col">
+            <div class="color-preview-large">
+              <div id="colorChip" class="color-chip"></div>
+              <div>
+                <div id="labelColorHex" style="font-family: monospace; font-size: 0.95rem; font-weight: 600;">#00FFFF</div>
+                <div id="labelColorRgb" style="font-size: 0.72rem; color: var(--muted);">RGB(0, 255, 255)</div>
+              </div>
+            </div>
+            <div style="font-size: 0.72rem; color: var(--muted); margin-top: 2px;">Cores Rápidas:</div>
+            <div class="color-presets" id="colorPresets"></div>
           </div>
         </div>
+      </div>
 
+      <div class="controls-grid" style="border: none; padding-top: 6px;">
         <div class="control-group">
           <div class="control-label">
             Brilho dos LEDs:
@@ -870,7 +953,6 @@
           <input type="range" id="sliderSpeed" min="0" max="4" value="2">
         </div>
       </div>
-
       <div style="display: flex; justify-content: flex-end; padding-top: 10px;">
         <button id="btnApplyLed" class="btn btn-primary">
           Aplicar Iluminação
@@ -1035,10 +1117,8 @@
         isRainbow = !!s.led.rainbow;
         updateRainbowButtons();
 
-        if (s.led.rgb) {
-          const hex = '#' + s.led.rgb.map(c => c.toString(16).padStart(2, '0')).join('');
-          document.getElementById('inputLedColor').value = hex;
-          document.getElementById('labelColorHex').textContent = hex.toUpperCase();
+        if (s.led.rgb && s.led.rgb.length === 3) {
+          setSelectedColor(s.led.rgb[0], s.led.rgb[1], s.led.rgb[2], true);
         }
       }
     };
@@ -1192,22 +1272,169 @@
       });
     });
 
-    // Tab 3: Lighting listeners
-    const inputLedColor = document.getElementById('inputLedColor');
+    // Tab 3: Lighting listeners & Color Wheel
+    let currentRgb = [0, 255, 255];
+    const wheelCanvas = document.getElementById('colorWheelCanvas');
+    const wheelCtx = wheelCanvas.getContext('2d');
+    const wheelCursor = document.getElementById('wheelCursor');
+    const colorChip = document.getElementById('colorChip');
     const labelColorHex = document.getElementById('labelColorHex');
-    inputLedColor.addEventListener('input', () => {
-      labelColorHex.textContent = inputLedColor.value.toUpperCase();
+    const labelColorRgb = document.getElementById('labelColorRgb');
+    const colorPresetsContainer = document.getElementById('colorPresets');
+
+    // Draw HSV Color Wheel
+    function drawColorWheel() {
+      const size = wheelCanvas.width;
+      const center = size / 2;
+      const radius = center - 2;
+      const imgData = wheelCtx.createImageData(size, size);
+      const data = imgData.data;
+
+      for (let y = 0; y < size; y++) {
+        for (let x = 0; x < size; x++) {
+          const dx = x - center;
+          const dy = y - center;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const idx = (y * size + x) * 4;
+
+          if (dist <= radius) {
+            let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+            if (angle < 0) angle += 360;
+            const sat = Math.min(1, dist / radius);
+            const [r, g, b] = hsvToRgb(angle, sat, 1.0);
+            data[idx] = r;
+            data[idx + 1] = g;
+            data[idx + 2] = b;
+            data[idx + 3] = 255;
+          } else {
+            data[idx + 3] = 0;
+          }
+        }
+      }
+      wheelCtx.putImageData(imgData, 0, 0);
+    }
+
+    function hsvToRgb(h, s, v) {
+      const c = v * s;
+      const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+      const m = v - c;
+      let r = 0, g = 0, b = 0;
+      if (h < 60) [r, g, b] = [c, x, 0];
+      else if (h < 120) [r, g, b] = [x, c, 0];
+      else if (h < 180) [r, g, b] = [0, c, x];
+      else if (h < 240) [r, g, b] = [0, x, c];
+      else if (h < 300) [r, g, b] = [x, 0, c];
+      else [r, g, b] = [c, 0, x];
+      return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+    }
+
+    function rgbToHsv(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b), min = Math.min(r, g, b);
+      const d = max - min;
+      let h = 0;
+      const s = max === 0 ? 0 : d / max;
+      const v = max;
+      if (max !== min) {
+        switch (max) {
+          case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+          case g: h = (b - r) / d + 2; break;
+          case b: h = (r - g) / d + 4; break;
+        }
+        h *= 60;
+      }
+      return [h, s, v];
+    }
+
+    function setSelectedColor(r, g, b, updateCursorPos = true) {
+      currentRgb = [r, g, b];
+      const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+      colorChip.style.background = hex;
+      labelColorHex.textContent = hex;
+      labelColorRgb.textContent = `RGB(${r}, ${g}, ${b})`;
+
+      if (updateCursorPos) {
+        const [h, s] = rgbToHsv(r, g, b);
+        const center = wheelCanvas.width / 2;
+        const radius = (center - 2) * s;
+        const rad = h * (Math.PI / 180);
+        const x = center + radius * Math.cos(rad);
+        const y = center + radius * Math.sin(rad);
+        wheelCursor.style.left = x + 'px';
+        wheelCursor.style.top = y + 'px';
+      }
+    }
+
+    // Color wheel click & drag interaction
+    let isPicking = false;
+    function pickColorFromEvent(e) {
+      const rect = wheelCanvas.getBoundingClientRect();
+      const scale = wheelCanvas.width / rect.width;
+      const x = (e.clientX - rect.left) * scale;
+      const y = (e.clientY - rect.top) * scale;
+      const center = wheelCanvas.width / 2;
+      const radius = center - 2;
+      const dx = x - center;
+      const dy = y - center;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+
+      let angle = Math.atan2(dy, dx) * (180 / Math.PI);
+      if (angle < 0) angle += 360;
+      const sat = Math.min(1, dist / radius);
+      const [r, g, b] = hsvToRgb(angle, sat, 1.0);
+
+      const clampedDist = Math.min(dist, radius);
+      const rad = angle * (Math.PI / 180);
+      const curX = center + clampedDist * Math.cos(rad);
+      const curY = center + clampedDist * Math.sin(rad);
+      wheelCursor.style.left = curX + 'px';
+      wheelCursor.style.top = curY + 'px';
+
+      setSelectedColor(r, g, b, false);
+    }
+
+    wheelCanvas.addEventListener('mousedown', (e) => {
+      isPicking = true;
+      pickColorFromEvent(e);
     });
+    window.addEventListener('mousemove', (e) => {
+      if (isPicking) pickColorFromEvent(e);
+    });
+    window.addEventListener('mouseup', () => isPicking = false);
+
+    // Presets bar
+    const presetColors = [
+      '#FF0000', '#FF4500', '#FFA500', '#FFFF00', '#00FF00', '#00FFFF', '#0080FF',
+      '#0000FF', '#7B00FF', '#FF00FF', '#FF1493', '#FFFFFF', '#FFB6C1', '#808080'
+    ];
+    presetColors.forEach(hex => {
+      const dot = document.createElement('div');
+      dot.className = 'preset-dot';
+      dot.style.background = hex;
+      dot.title = hex;
+      dot.addEventListener('click', () => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        setSelectedColor(r, g, b, true);
+      });
+      colorPresetsContainer.appendChild(dot);
+    });
+
+    drawColorWheel();
+    setSelectedColor(0, 255, 255);
 
     function updateRainbowButtons() {
       if (isRainbow) {
         document.getElementById('btnColorRainbow').classList.add('active');
         document.getElementById('btnColorCustom').classList.remove('active');
-        document.getElementById('groupCustomColor').style.opacity = '0.4';
+        document.getElementById('groupCustomColor').style.opacity = '0.35';
+        document.getElementById('groupCustomColor').style.pointerEvents = 'none';
       } else {
         document.getElementById('btnColorCustom').classList.add('active');
         document.getElementById('btnColorRainbow').classList.remove('active');
         document.getElementById('groupCustomColor').style.opacity = '1.0';
+        document.getElementById('groupCustomColor').style.pointerEvents = 'auto';
       }
     }
 
@@ -1232,17 +1459,12 @@
     });
 
     document.getElementById('btnApplyLed').addEventListener('click', () => {
-      const hex = inputLedColor.value.replace('#', '');
-      const r = parseInt(hex.substring(0, 2), 16);
-      const g = parseInt(hex.substring(2, 4), 16);
-      const b = parseInt(hex.substring(4, 6), 16);
-
       sendToPython('set_led', {
         mode: parseInt(document.getElementById('selLedMode').value, 10),
         speed: parseInt(sliderSpeed.value, 10),
         brightness: parseInt(sliderBrightness.value, 10),
         rainbow: isRainbow,
-        rgb: [r, g, b]
+        rgb: currentRgb
       });
     });
 
