@@ -90,9 +90,9 @@ Run the included installer:
 This will:
 1. Generate and install a localized `.desktop` application shortcut to `~/.local/share/applications/`.
 2. Install the application icon into your user icon theme.
-3. Configure the `udev` rule so you can write to the keyboard without `sudo`.
+3. Configure the `udev` rules so you can configure both the K86 keyboard and the X11 mouse without `sudo`.
 
-*After running `install.sh`, unplug and replug the keyboard's USB cable.*
+*After running `install.sh`, unplug and replug the keyboard's USB cable and the mouse receiver.*
 
 ### 2. Launching the GUI
 
@@ -156,12 +156,18 @@ The K86 display has a native resolution of **240×135 pixels** (16:9 widescreen 
 
 ## 🔧 Troubleshooting
 
-* **Permission denied on `/dev/hidrawX`:**
-  Install the udev rule and replug the USB cable:
+* **Permission denied on `/dev/hidrawX` (Keyboard or Mouse):**
+  If you did not run `install.sh`, install the unified udev rule manually and reconnect your devices:
   ```bash
-  echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3151", ATTRS{idProduct}=="4015|5002", MODE="0660", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/70-attack-shark-k86.rules
+  printf '%s\n' \
+    '# Attack Shark K86 Keyboard' \
+    'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3151", ATTRS{idProduct}=="4015|5002", MODE="0660", TAG+="uaccess"' \
+    '# Attack Shark X11 Mouse (Wireless Receiver & Wired)' \
+    'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1d57", ATTRS{idProduct}=="fa60|fa55", MODE="0660", TAG+="uaccess"' \
+    | sudo tee /etc/udev/rules.d/70-attack-shark-devices.rules
   sudo udevadm control --reload-rules && sudo udevadm trigger
   ```
+  *Then unplug and replug the K86 USB cable and the X11 2.4G wireless receiver/dock.*
 * **"Display did not accept announce handshake":**
   Ensure the keyboard is plugged in directly via USB cable (not via unpowered hub). Reconnect the cable. Make sure no other keyboard software (e.g., `sharkfin`) is open.
 * **White horizontal band or corrupted frame:**

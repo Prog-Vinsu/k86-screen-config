@@ -90,9 +90,9 @@ Execute o instalador:
 O script irá:
 1. Gerar e instalar o atalho `.desktop` em `~/.local/share/applications/` com caminhos dinâmicos.
 2. Copiar o ícone para o tema do usuário.
-3. Configurar a regra do `udev` para permitir gravação sem `sudo`.
+3. Configurar as regras do `udev` para permitir comunicação com o teclado K86 e o mouse X11 sem `sudo`.
 
-*Após a instalação, desconecte e reconecte o cabo USB do teclado.*
+*Após a instalação, desconecte e reconecte o cabo USB do teclado e o receptor do mouse.*
 
 ### 2. Abrindo a Interface Visual
 
@@ -136,12 +136,18 @@ A tela possui resolução nativa de **240×135 pixels** (proporção 16:9). Anim
 
 ## 🔧 Solução de Problemas
 
-* **Permissão negada em `/dev/hidrawX`:**
-  Instale a regra udev e reconecte o cabo USB:
+* **Permissão negada em `/dev/hidrawX` (Teclado ou Mouse):**
+  Se você não executou o `install.sh`, instale a regra udev unificada manualmente e reconecte os aparelhos:
   ```bash
-  echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3151", ATTRS{idProduct}=="4015|5002", MODE="0660", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/70-attack-shark-k86.rules
+  printf '%s\n' \
+    '# Teclado Attack Shark K86' \
+    'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3151", ATTRS{idProduct}=="4015|5002", MODE="0660", TAG+="uaccess"' \
+    '# Mouse Attack Shark X11 (Receptor 2.4G e Cabo)' \
+    'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1d57", ATTRS{idProduct}=="fa60|fa55", MODE="0660", TAG+="uaccess"' \
+    | sudo tee /etc/udev/rules.d/70-attack-shark-devices.rules
   sudo udevadm control --reload-rules && sudo udevadm trigger
   ```
+  *Em seguida, desconecte e reconecte o cabo USB do teclado e o receptor 2.4G ou a dock do mouse.*
 * **"A tela não respondeu com o sinal de confirmação (ready)":**
   Conecte o teclado diretamente ao computador (evite hubs USB sem alimentação). Feche ferramentas que possam estar ocupando a interface HID (como o `sharkfin`).
 * **Faixa branca ou imagem estagnada:**
