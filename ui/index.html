@@ -57,6 +57,19 @@
 
   <!-- TAB 1: SCREEN & GIF UPLOAD -->
   <div id="tab-screen" class="tab-pane active">
+    <!-- Connection Warning Banner (Shown when keyboard is not on cable) -->
+    <div id="kbCableWarning" class="panel" style="display: none; background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.35); padding: 12px 16px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <svg viewBox="0 0 24 24" style="width: 22px; height: 22px; stroke: var(--accent); fill: none; flex-shrink: 0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div style="flex: 1;">
+          <div style="font-weight: 600; font-size: 0.88rem; color: var(--accent);">Conexão via Cabo USB Necessária para a Telinha</div>
+          <div style="font-size: 0.8rem; color: var(--muted); margin-top: 2px;">
+            A gravação de GIFs e imagens no display TFT requer o cabo USB conectado. O modo sem fio (2.4G ou Bluetooth) não expõe os canais de gravação da memória flash da tela.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="dropzone" class="dropzone">
       <svg viewBox="0 0 24 24">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
@@ -65,7 +78,6 @@
       <div class="dropzone-subtext">ou clique para selecionar (.gif, .png, .jpg, .webp)</div>
       <input type="file" id="fileInput" accept="image/gif,image/png,image/jpeg,image/webp" style="display: none;">
     </div>
-
     <!-- Preview Panel -->
     <div id="previewPanel" class="panel" style="display: none;">
       <div class="preview-container">
@@ -518,6 +530,7 @@
             <tr><td>Chipset / Família:</td><td id="infoFamily">ROYUAN YC500 / YC3121</td></tr>
             <tr><td>Nó de Comunicação:</td><td id="infoNode" class="font-mono">/dev/hidrawX</td></tr>
             <tr><td>Display TFT:</td><td>240 × 135 px (RGB565)</td></tr>
+            <tr><td>Alimentação / Bateria:</td><td id="infoKbBattery">Alimentado via USB (5V)</td></tr>
           </tbody>
         </table>
       </div>

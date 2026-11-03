@@ -41,8 +41,10 @@ FRAME_RAW_LEN = SCREEN_W * SCREEN_H * 2  # 64.800 bytes (RGB565)
 FRAME_STRIDE = 65536
 
 SUPPORTED_VID_PIDS = [
-    ("3151", "4015"),  # K86 Rev 1 (yc3121 / yc500 - ID 1168)
-    ("3151", "5002"),  # K86 Rev 2 (yc3123 / gen2 - ID 2730)
+    ("3151", "4015", "cable"),     # K86 Rev 1 Cable (yc3121 / yc500 - ID 1168)
+    ("3151", "5002", "cable"),     # K86 Rev 2 Cable (yc3123 / gen2 - ID 2730)
+    ("3151", "4011", "wireless"),  # K86 Rev 1 2.4G Wireless Dongle
+    ("3151", "5006", "wireless"),  # K86 Rev 2 2.4G Wireless Dongle
 ]
 
 VERIFIED_K86_DEVICE_IDS = [1168, 2730]
@@ -120,7 +122,7 @@ class HidrawDevice:
         return None
 
 
-def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int]]]:
+def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int], str]]:
     for hidraw_path in glob.glob("/sys/class/hidraw/hidraw*"):
         dev_dir = os.path.join(hidraw_path, "device")
         uevent_file = os.path.join(dev_dir, "uevent")
@@ -133,9 +135,13 @@ def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int]]]:
             continue
 
         matched_id = None
-        for vid, pid in SUPPORTED_VID_PIDS:
+        conn_type = "cable"
+        for item in SUPPORTED_VID_PIDS:
+            vid, pid = item[0], item[1]
+            ctype = item[2] if len(item) > 2 else "cable"
             if f":{vid.upper()}:{pid.upper()}" in uevent or f"HID_ID=0003:0000{vid}:0000{pid}" in uevent:
                 matched_id = f"{vid}:{pid}"
+                conn_type = ctype
                 break
 
         if not matched_id:
@@ -161,7 +167,7 @@ def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int]]]:
                     except Exception:
                         pass
 
-                    return node, matched_id, name, dev_id
+                    return node, matched_id, name, dev_id, conn_type
             except Exception:
                 continue
 
@@ -634,7 +640,7 @@ def launch_native_gui(dry_run: bool = False):
                 conflict = check_conflicting_tools()
                 dev_info = find_keyboard_hidraw()
                 if dev_info:
-                    node, vid_pid, name, dev_id = dev_info
+                    node, vid_pid, name, dev_id, conn_type = dev_info
                     id_label = f" [ID: {dev_id}]" if dev_id else ""
                     res = {
                         "connected": True,
@@ -643,6 +649,7 @@ def launch_native_gui(dry_run: bool = False):
                         "name": f"{name}{id_label}",
                         "dev_id": dev_id or 1168,
                         "conflict": conflict,
+                        "conn_type": conn_type,
                     }
                 else:
                     res = {"connected": False, "conflict": conflict}
@@ -954,9 +961,9 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                 dev_info = find_keyboard_hidraw()
                 conflict = check_conflicting_tools()
                 if dev_info:
-                    node, vid_pid, name, dev_id = dev_info
+                    node, vid_pid, name, dev_id, conn_type = dev_info
                     id_label = f" [ID: {dev_id}]" if dev_id else ""
-                    send_json({"connected": True, "node": node, "vid_pid": vid_pid, "name": f"{name}{id_label}", "dev_id": dev_id or 1168, "conflict": conflict})
+                    send_json({"connected": True, "node": node, "vid_pid": vid_pid, "name": f"{name}{id_label}", "dev_id": dev_id or 1168, "conflict": conflict, "conn_type": conn_type})
                 else:
                     send_json({"connected": False, "conflict": conflict})
 
@@ -1177,7 +1184,7 @@ def run_cli(args):
     found = find_keyboard_hidraw()
     if not found:
         sys.exit("[!] Teclado K86 não encontrado via cabo USB.")
-    hid_node, vid_pid, prod_name, dev_id = found
+    hid_node, vid_pid, prod_name, dev_id, _ = found
     id_info = f" [ID: {dev_id}]" if dev_id else ""
     print(f"[+] Teclado detectado : {prod_name}{id_info} ({vid_pid}) em {hid_node}")
 

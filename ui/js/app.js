@@ -90,32 +90,49 @@
 
     // Callbacks from Python
     window.onDeviceStatus = function(d) {
+      const isCable = d.connected && d.conn_type !== 'wireless';
+      const kbWarning = document.getElementById('kbCableWarning');
+      const kbBattery = document.getElementById('infoKbBattery');
+      const kbBadge = document.getElementById('infoKbStatusBadge');
+
       if (d.connected) {
         deviceBadge.className = 'status-badge connected';
-        deviceText.textContent = `Teclado: ${d.name} (${d.node})`;
+        deviceText.textContent = isCable ? `Teclado: ${d.name}` : `Teclado: ${d.name} (Sem Fio 2.4G)`;
         document.getElementById('infoDevId').textContent = d.dev_id || '1168';
         document.getElementById('infoNode').textContent = d.node;
         document.getElementById('infoUsbId').textContent = d.vid_pid;
-        const kbBadge = document.getElementById('infoKbStatusBadge');
+        
         if (kbBadge) {
-          kbBadge.textContent = 'Conectado';
+          kbBadge.textContent = isCable ? 'Conectado (Cabo USB)' : 'Conectado (Sem Fio 2.4G)';
           kbBadge.style.color = 'var(--success)';
           kbBadge.style.borderColor = 'var(--success-border)';
           kbBadge.style.background = 'var(--success-subtle)';
+        }
+        if (kbBattery) {
+          kbBattery.textContent = isCable ? 'Alimentado via USB (5V • Carregando)' : 'Modo Bateria (2.4G)';
+        }
+        if (kbWarning) {
+          kbWarning.style.display = isCable ? 'none' : 'block';
         }
       } else {
         deviceBadge.className = 'status-badge error';
         deviceText.textContent = d.conflict 
           ? `Conflito: feche o processo '${d.conflict}'`
           : 'Teclado não detectado (conecte o cabo USB)';
-        const kbBadge = document.getElementById('infoKbStatusBadge');
         if (kbBadge) {
           kbBadge.textContent = 'Desconectado';
           kbBadge.style.color = 'var(--error-text)';
           kbBadge.style.borderColor = 'var(--error-border)';
           kbBadge.style.background = 'var(--error-subtle)';
         }
+        if (kbBattery) {
+          kbBattery.textContent = '--';
+        }
+        if (kbWarning) {
+          kbWarning.style.display = 'block';
+        }
       }
+      updateUploadButtonState();
     };
 
     window.onFeedback = function(res) {
@@ -244,7 +261,7 @@
         if (dzText) dzText.textContent = 'Substituir arquivo (.gif, .png, .jpg)';
         if (dzSubtext) dzSubtext.textContent = 'Clique ou solte outro arquivo para trocar a animação';
         previewPanel.style.display = 'flex';
-        btnUpload.disabled = false;
+        updateUploadButtonState();
         sendToPython('inspect', { image: currentFileBase64 });
       };
       reader.readAsDataURL(file);
@@ -259,6 +276,27 @@
         delayVal.textContent = data.suggested_delay;
       }
     };
+
+    function updateUploadButtonState() {
+      if (!btnUpload) return;
+      const hasFile = !!currentFileBase64;
+      const isKbConnected = deviceBadge?.classList.contains('connected');
+      const isKbCable = !deviceText?.textContent.includes('Sem Fio');
+
+      if (!hasFile) {
+        btnUpload.disabled = true;
+        btnUpload.title = 'Selecione uma imagem ou animação primeiro';
+      } else if (!isKbConnected) {
+        btnUpload.disabled = true;
+        btnUpload.title = 'Conecte o teclado via cabo USB para gravar';
+      } else if (!isKbCable) {
+        btnUpload.disabled = true;
+        btnUpload.title = 'Gravação na telinha requer o cabo USB conectado';
+      } else {
+        btnUpload.disabled = isUploading;
+        btnUpload.title = 'Pronto para gravar no display TFT';
+      }
+    }
 
     window.onUploadProgress = function(msg) {
       if (msg.status === 'progress') {
