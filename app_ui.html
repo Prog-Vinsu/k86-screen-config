@@ -6,27 +6,86 @@
   <title>Attack Shark K86 - Configurator & Screen Uploader</title>
   <style>
     :root {
-      --bg: #0d1117;
-      --card: #161b22;
-      --card-hover: #1f242c;
-      --border: #30363d;
-      --accent: #58a6ff;
-      --accent-gradient: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
-      --accent-hover: linear-gradient(135deg, #4f46e5 0%, #0891b2 100%);
-      --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-      --success: #238636;
-      --error: #da3633;
-      --text: #f0f6fc;
-      --muted: #8b949e;
-      --radius: 12px;
+      /* Console Tático / Engenharia de Hardware */
+      --bg: #090c10;
+      --card: #121620;
+      --card-hover: #171d2b;
+      --border: #222b3d;
+      --border-focus: #3b4763;
+      
+      /* Acento de Instrumentação: Âmbar Tático */
+      --accent: #f59e0b;
+      --accent-hover: #d97706;
+      --accent-active: #b45309;
+      --accent-fg: #090c10;
+      --accent-subtle: rgba(245, 158, 11, 0.12);
+      --accent-border: rgba(245, 158, 11, 0.35);
+      
+      /* Marcadores de Telemetria */
+      --telemetry: #00d2ff;
+      --telemetry-subtle: rgba(0, 210, 255, 0.12);
+      
+      /* Estados de Sistema */
+      --success: #10b981;
+      --success-subtle: rgba(16, 185, 129, 0.12);
+      --success-border: rgba(16, 185, 129, 0.35);
+      --error: #dc2626;
+      --error-text: #f87171;
+      --error-subtle: rgba(220, 38, 38, 0.12);
+      --error-border: rgba(220, 38, 38, 0.35);
+      
+      --text: #f1f5f9;
+      --muted: #94a3b8;
+      --muted-dark: #8da2bd;
+      
+      --radius: 6px;
+      --radius-sm: 4px;
+      --radius-lg: 8px;
+      
+      --shadow-elevation: 0 4px 16px rgba(0, 0, 0, 0.45);
+      --shadow-surface: 0 1px 3px rgba(0, 0, 0, 0.3);
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Ubuntu", "Cantarell", sans-serif;
+    }
+
+    ::selection {
+      background: rgba(245, 158, 11, 0.3);
+      color: #ffffff;
+    }
+
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--border-focus);
+    }
+
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+
+    .font-mono, .badge, .file-name, #infoUsbId, #infoFamily, #infoNode, #labelColorHex, #labelSledColorHex {
+      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tab-btn, .btn, .radio-btn, .toggle-switch, .preset-dot, .brand img {
       user-select: none;
+      -webkit-user-select: none;
     }
 
     body {
@@ -56,43 +115,48 @@
     .brand img {
       width: 36px;
       height: 36px;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
     }
 
     .brand h1 {
       font-size: 1.15rem;
       font-weight: 600;
-      letter-spacing: -0.3px;
+      letter-spacing: -0.2px;
+      color: var(--text);
     }
 
     .brand span {
-      font-size: 0.75rem;
+      font-size: 0.82rem;
       color: var(--muted);
       display: block;
+      margin-top: 2px;
     }
 
     .status-badge {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 20px;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       font-weight: 500;
-      background: rgba(139, 148, 158, 0.15);
+      background: rgba(148, 163, 184, 0.08);
       border: 1px solid var(--border);
+      color: var(--muted);
+      letter-spacing: 0.2px;
     }
 
     .status-badge.connected {
-      background: rgba(46, 160, 67, 0.15);
-      border-color: rgba(46, 160, 67, 0.4);
-      color: #3fb950;
+      background: var(--success-subtle);
+      border-color: var(--success-border);
+      color: var(--success);
     }
 
     .status-badge.error {
-      background: rgba(248, 81, 73, 0.15);
-      border-color: rgba(248, 81, 73, 0.4);
-      color: #f85149;
+      background: var(--error-subtle);
+      border-color: var(--error-border);
+      color: var(--error);
     }
 
     .status-dot {
@@ -100,6 +164,7 @@
       height: 8px;
       border-radius: 50%;
       background: currentColor;
+      box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
     }
 
     /* Tabs Navigation */
@@ -115,30 +180,41 @@
     .tab-btn {
       flex: 1;
       padding: 8px 12px;
-      font-size: 0.82rem;
+      font-size: 0.85rem;
       font-weight: 500;
-      border-radius: 8px;
-      border: none;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
       background: transparent;
       color: var(--muted);
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 6px;
-      transition: all 0.2s ease;
+      gap: 8px;
+      transition: all 0.15s ease;
     }
 
     .tab-btn:hover {
       color: var(--text);
-      background: rgba(255, 255, 255, 0.04);
+      background: var(--card-hover);
+      border-color: var(--border);
     }
 
     .tab-btn.active {
-      background: var(--accent-gradient);
-      color: #fff;
+      background: var(--accent);
+      color: var(--accent-fg);
       font-weight: 600;
-      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);
+      border-color: var(--accent-hover);
+      box-shadow: var(--shadow-surface);
+    }
+
+    .tab-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      flex-shrink: 0;
     }
 
     /* Tab Content Areas */
@@ -157,10 +233,11 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 18px;
       display: flex;
       flex-direction: column;
       gap: 14px;
+      box-shadow: var(--shadow-surface);
     }
 
     .panel-title {
@@ -169,7 +246,23 @@
       color: var(--text);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 10px;
+      letter-spacing: -0.1px;
+    }
+
+    .panel-title svg {
+      width: 18px;
+      height: 18px;
+      stroke: var(--accent);
+      stroke-width: 2;
+      fill: none;
+      flex-shrink: 0;
+    }
+
+    .panel-desc {
+      font-size: 0.85rem;
+      color: var(--muted);
+      line-height: 1.45;
     }
 
     /* Drop Zone */
@@ -177,7 +270,7 @@
       border: 2px dashed var(--border);
       background: var(--card);
       border-radius: var(--radius);
-      padding: 30px 20px;
+      padding: 26px 20px;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -187,51 +280,71 @@
       justify-content: center;
       gap: 10px;
     }
+    .dropzone.compact {
+      padding: 12px 18px;
+      flex-direction: row;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    .dropzone.compact svg {
+      width: 22px;
+      height: 22px;
+    }
+
 
     .dropzone:hover, .dropzone.dragover {
       border-color: var(--accent);
       background: var(--card-hover);
-      transform: translateY(-1px);
     }
 
     .dropzone svg {
-      width: 44px;
-      height: 44px;
+      width: 38px;
+      height: 38px;
       stroke: var(--accent);
       stroke-width: 1.8;
       fill: none;
     }
 
     .dropzone-text {
-      font-size: 0.95rem;
-      font-weight: 500;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text);
     }
 
     .dropzone-subtext {
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       color: var(--muted);
     }
 
-    /* Preview Bezel */
+    /* Preview Bezel (Tactical TFT 240x135 Screen) */
     .preview-container {
       display: flex;
-      gap: 16px;
+      gap: 18px;
       align-items: center;
     }
 
     .screen-bezel {
       width: 240px;
       height: 135px;
-      background: #000;
-      border: 3px solid #30363d;
-      border-radius: 8px;
+      background: #05070a;
+      border: 3px solid #1a202c;
+      border-radius: var(--radius);
       overflow: hidden;
       position: relative;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(0, 210, 255, 0.2);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6), inset 0 0 0 1px rgba(255, 255, 255, 0.08);
       flex-shrink: 0;
       display: flex;
       align-items: center;
       justify-content: center;
+    }
+
+    .screen-bezel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, transparent 55%);
+      pointer-events: none;
     }
 
     .screen-bezel img {
@@ -245,7 +358,7 @@
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 8px;
       font-size: 0.85rem;
     }
 
@@ -253,6 +366,7 @@
       font-weight: 600;
       font-size: 0.95rem;
       word-break: break-all;
+      color: var(--text);
     }
 
     .badge-row {
@@ -263,11 +377,12 @@
     }
 
     .badge {
-      background: rgba(255, 255, 255, 0.08);
-      padding: 3px 8px;
-      border-radius: 6px;
-      font-size: 0.75rem;
-      color: var(--text);
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 0.82rem;
+      color: var(--muted);
     }
 
     /* Form Controls */
@@ -275,7 +390,7 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 14px;
-      padding-top: 10px;
+      padding-top: 12px;
       border-top: 1px solid var(--border);
     }
 
@@ -286,49 +401,73 @@
     }
 
     .control-label {
-      font-size: 0.8rem;
+      font-size: 0.82rem;
+      font-weight: 500;
       color: var(--muted);
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
 
     .control-label span {
       color: var(--accent);
+      font-family: "JetBrains Mono", monospace;
+      font-variant-numeric: tabular-nums;
       font-weight: 600;
+    }
+
+    .control-hint {
+      font-size: 0.82rem;
+      color: var(--muted-dark);
+      line-height: 1.35;
     }
 
     input[type="range"] {
       width: 100%;
-      accent-color: #6366f1;
+      accent-color: var(--accent);
       cursor: pointer;
+      background: transparent;
+      height: 20px;
     }
 
-    select, input[type="text"], input[type="number"] {
+    select {
       -webkit-appearance: none;
       appearance: none;
-      background-color: #161b22;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%238b949e' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-color: var(--card-hover);
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
       background-repeat: no-repeat;
       background-position: right 10px center;
       background-size: 14px;
       border: 1px solid var(--border);
-      border-radius: 6px;
-      color: #f0f6fc;
+      border-radius: var(--radius-sm);
+      color: var(--text);
       padding: 8px 32px 8px 12px;
       font-size: 0.85rem;
       outline: none;
       cursor: pointer;
+      transition: border-color 0.15s ease;
+    }
+
+    input[type="text"], input[type="number"] {
+      background-color: var(--card-hover);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.15s ease;
     }
 
     select option {
-      background-color: #161b22;
-      color: #f0f6fc;
+      background-color: var(--card);
+      color: var(--text);
       padding: 8px;
     }
 
-    select:focus, input:focus {
+    select:focus, input[type="text"]:focus, input[type="number"]:focus {
       border-color: var(--accent);
-      background-color: #1c2128;
+      background-color: var(--surface-3);
     }
 
     .radio-group {
@@ -339,20 +478,26 @@
     .radio-btn {
       flex: 1;
       padding: 6px 10px;
-      font-size: 0.75rem;
+      font-size: 0.82rem;
+      font-weight: 500;
       border: 1px solid var(--border);
-      border-radius: 6px;
-      background: var(--card);
+      border-radius: var(--radius-sm);
+      background: var(--card-hover);
       color: var(--muted);
       cursor: pointer;
       text-align: center;
-      transition: all 0.15s;
+      transition: all 0.15s ease;
+    }
+
+    .radio-btn:hover {
+      color: var(--text);
+      border-color: var(--border-focus);
     }
 
     .radio-btn.active {
-      background: var(--accent-gradient);
-      color: #fff;
-      border-color: transparent;
+      background: var(--accent-subtle);
+      color: var(--accent);
+      border-color: var(--accent);
       font-weight: 600;
     }
 
@@ -369,15 +514,17 @@
       border-bottom: none;
     }
 
-    .switch-info h4 {
+    .switch-info h3 {
       font-size: 0.88rem;
       font-weight: 500;
+      color: var(--text);
     }
 
     .switch-info p {
-      font-size: 0.75rem;
+      font-size: 0.82rem;
       color: var(--muted);
       margin-top: 2px;
+      line-height: 1.35;
     }
 
     .toggle-switch {
@@ -385,6 +532,7 @@
       width: 44px;
       height: 24px;
       cursor: pointer;
+      flex-shrink: 0;
     }
 
     .toggle-switch input {
@@ -396,10 +544,10 @@
     .toggle-slider {
       position: absolute;
       inset: 0;
-      background: #21262d;
+      background: #1a202c;
       border: 1px solid var(--border);
       border-radius: 24px;
-      transition: 0.2s;
+      transition: 0.2s ease;
     }
 
     .toggle-slider:before {
@@ -411,66 +559,85 @@
       bottom: 3px;
       background: var(--muted);
       border-radius: 50%;
-      transition: 0.2s;
+      transition: 0.2s ease;
+    }
+
+    .toggle-switch input:focus-visible + .toggle-slider {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
     }
 
     .toggle-switch input:checked + .toggle-slider {
-      background: #6366f1;
-      border-color: #6366f1;
+      background: var(--accent);
+      border-color: var(--accent);
     }
 
     .toggle-switch input:checked + .toggle-slider:before {
       transform: translateX(20px);
-      background: #ffffff;
+      background: var(--accent-fg);
     }
 
     /* Buttons */
     .btn {
       padding: 9px 16px;
-      border-radius: var(--radius);
-      font-size: 0.88rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
       font-weight: 600;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      transition: all 0.2s ease;
-      border: none;
+      transition: all 0.15s ease;
+      border: 1px solid transparent;
+      letter-spacing: 0.2px;
+    }
+
+    .btn svg {
+      width: 16px;
+      height: 16px;
+      stroke: currentColor;
+      stroke-width: 2;
+      fill: none;
+      flex-shrink: 0;
     }
 
     .btn-primary {
-      background: var(--accent-gradient);
-      color: #fff;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.3);
+      background: var(--accent);
+      color: var(--accent-fg);
+      border-color: var(--accent-hover);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
     }
 
     .btn-primary:hover:not(:disabled) {
       background: var(--accent-hover);
-      transform: translateY(-1px);
+      border-color: var(--accent-active);
     }
 
     .btn-secondary {
-      background: rgba(255, 255, 255, 0.08);
+      background: var(--card-hover);
       color: var(--text);
-      border: 1px solid var(--border);
+      border-color: var(--border);
     }
 
     .btn-secondary:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.12);
+      background: var(--border);
+      border-color: var(--border-focus);
     }
 
     .btn-danger {
-      background: var(--danger-gradient);
-      color: #fff;
+      background: var(--error);
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
     }
 
     .btn-danger:hover:not(:disabled) {
-      filter: brightness(1.1);
+      background: #dc2626;
     }
 
     .btn:disabled {
-      opacity: 0.5;
+      opacity: 0.45;
       cursor: not-allowed;
       transform: none !important;
     }
@@ -478,9 +645,9 @@
     /* Progress & Alert */
     .progress-bar-container {
       width: 100%;
-      height: 8px;
+      height: 6px;
       background: rgba(255, 255, 255, 0.08);
-      border-radius: 4px;
+      border-radius: 3px;
       overflow: hidden;
       margin-top: 8px;
       display: none;
@@ -489,120 +656,222 @@
     .progress-bar {
       height: 100%;
       width: 0%;
-      background: var(--accent-gradient);
+      background: var(--accent);
       transition: width 0.15s ease;
     }
 
     .progress-info {
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       color: var(--muted);
       display: flex;
       justify-content: space-between;
       margin-top: 6px;
+      font-family: "JetBrains Mono", monospace;
+      font-variant-numeric: tabular-nums;
     }
 
     .alert {
       padding: 10px 14px;
-      border-radius: 8px;
+      border-radius: var(--radius-sm);
       font-size: 0.85rem;
       display: none;
     }
 
     .alert.success {
       display: flex;
-      background: rgba(46, 160, 67, 0.15);
-      border: 1px solid rgba(46, 160, 67, 0.4);
-      color: #3fb950;
+      background: var(--success-subtle);
+      border: 1px solid var(--success-border);
+      color: var(--success);
     }
 
     .alert.error {
       display: flex;
-      background: rgba(248, 81, 73, 0.15);
-      border: 1px solid rgba(248, 81, 73, 0.4);
-      color: #f85149;
+      background: var(--error-subtle);
+      border: 1px solid var(--error-border);
+      color: var(--error);
     }
 
-    /* Color Picker & Wheel Layout */
+    /* Unified Tactical Color Selector Component */
     .color-section {
       display: flex;
-      gap: 16px;
-      align-items: center;
-      background: #11151c;
-      padding: 12px;
+      flex-direction: column;
+      gap: 14px;
+      background: var(--bg);
+      padding: 16px;
       border-radius: var(--radius);
       border: 1px solid var(--border);
-      margin-top: 6px;
+      margin-top: 8px;
     }
 
-    .wheel-container {
-      position: relative;
-      width: 140px;
-      height: 140px;
-      flex-shrink: 0;
-    }
-
-    #colorWheelCanvas {
-      width: 140px;
-      height: 140px;
-      border-radius: 50%;
-      cursor: crosshair;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    }
-
-    #wheelCursor {
-      position: absolute;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      border: 2px solid #ffffff;
-      box-shadow: 0 0 4px rgba(0,0,0,0.8);
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      left: 70px;
-      top: 70px;
-    }
-
-    .color-presets-col {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .color-preview-large {
+    .color-hub-row {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .color-chip-wrapper {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
     }
 
     .color-chip {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: 2px solid var(--border);
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      width: 100%;
+      height: 100%;
+      border-radius: var(--radius-sm);
+      border: 2px solid var(--border-focus);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(255, 255, 255, 0.15);
       background: #00ffff;
-      flex-shrink: 0;
+      cursor: pointer;
+      transition: transform 0.15s ease, border-color 0.15s ease;
     }
 
-    .color-presets {
-      display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 5px;
+    .color-chip:hover {
+      transform: scale(1.05);
+      border-color: var(--accent);
+    }
+
+    .native-color-picker {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+      border: none;
+      padding: 0;
+    }
+
+    .color-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .color-hex-input-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .color-hex-input {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text);
+      background: var(--card-hover);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 6px 10px;
+      width: 100px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .color-hex-input:focus {
+      border-color: var(--accent);
+      background: var(--surface-3);
+    }
+
+    .color-rgb-label {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.82rem;
+      color: var(--muted);
+      letter-spacing: 0.2px;
+    }
+
+    .hue-slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .hue-slider-label {
+      font-size: 0.82rem;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 500;
+    }
+
+    .hue-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 12px;
+      border-radius: 6px;
+      background: linear-gradient(to right, 
+        #ff0000 0%, 
+        #ffff00 17%, 
+        #00ff00 33%, 
+        #00ffff 50%, 
+        #0000ff 67%, 
+        #ff00ff 83%, 
+        #ff0000 100%);
+      outline: none;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      cursor: pointer;
+    }
+
+    .hue-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #090c10;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    .hue-slider::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+
+    .color-presets-wrapper {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .color-presets-title {
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .color-presets-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
     }
 
     .preset-dot {
-      width: 22px;
-      height: 22px;
-      border-radius: 5px;
+      width: 26px;
+      height: 26px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      border: 1px solid rgba(255,255,255,0.15);
-      transition: transform 0.15s, border-color 0.15s;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
     }
 
     .preset-dot:hover {
-      transform: scale(1.15);
-      border-color: #fff;
+      transform: translateY(-2px);
+      border-color: #ffffff;
+      box-shadow: 0 3px 8px rgba(0, 0, 0, 0.6);
+    }
+
+    .preset-dot.active {
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 2px var(--accent);
+      transform: translateY(-1px);
     }
 
     /* Info Table */
@@ -613,7 +882,7 @@
     }
 
     .info-table td {
-      padding: 8px 0;
+      padding: 9px 0;
       border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
 
@@ -635,19 +904,20 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      font-size: 0.75rem;
+      font-size: 0.82rem;
       color: var(--muted);
     }
 
     .links-group {
       display: flex;
-      gap: 12px;
+      gap: 14px;
     }
 
     .links-group a {
       color: var(--accent);
       text-decoration: none;
       cursor: pointer;
+      font-weight: 500;
     }
 
     .links-group a:hover {
@@ -673,10 +943,22 @@
 
   <!-- Navigation Tabs -->
   <nav class="tabs-nav">
-    <button class="tab-btn active" data-tab="tab-screen">📺 Tela & GIFs</button>
-    <button class="tab-btn" data-tab="tab-device">⌨️ Teclado & Opções</button>
-    <button class="tab-btn" data-tab="tab-lighting">💡 Iluminação RGB</button>
-    <button class="tab-btn" data-tab="tab-info">ℹ️ Dispositivo</button>
+    <button class="tab-btn active" data-tab="tab-screen">
+      <svg viewBox="0 0 24 24"><rect width="20" height="15" x="2" y="3" rx="2"/><path d="M12 18v3M8 21h8"/></svg>
+      <span>Tela &amp; GIFs</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-device">
+      <svg viewBox="0 0 24 24"><rect width="20" height="13" x="2" y="5" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M9 13h6"/></svg>
+      <span>Teclado &amp; Opções</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-lighting">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      <span>Iluminação RGB</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-info">
+      <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 9h6v6H9zM9 1v2M15 1v2M9 21v2M15 21v2M1 9h2M1 15h2M21 9h2M21 15h2"/></svg>
+      <span>Dispositivo</span>
+    </button>
   </nav>
 
   <!-- Global Alert Box -->
@@ -689,7 +971,7 @@
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
       </svg>
       <div class="dropzone-text">Arraste e solte seu GIF ou imagem aqui</div>
-      <div class="dropzone-subtext">ou clique para selecionar (.gif, .png, .jpg)</div>
+      <div class="dropzone-subtext">ou clique para selecionar (.gif, .png, .jpg, .webp)</div>
       <input type="file" id="fileInput" accept="image/gif,image/png,image/jpeg,image/webp" style="display: none;">
     </div>
 
@@ -697,11 +979,11 @@
     <div id="previewPanel" class="panel" style="display: none;">
       <div class="preview-container">
         <div class="screen-bezel">
-          <img id="previewImg" src="" alt="Preview">
+          <img id="previewImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='135'%3E%3Crect width='100%25' height='100%25' fill='%2305070a'/%3E%3C/svg%3E" alt="Preview TFT">
         </div>
         <div class="file-details">
           <div id="fileName" class="file-name">animacao.gif</div>
-          <div id="fileDims" style="color: var(--muted);">240x135 px</div>
+          <div id="fileDims" style="color: var(--muted); font-size: 0.85rem;">240 × 135 px (Escala Nativa)</div>
           <div class="badge-row">
             <div id="badgeFrames" class="badge">-- quadros</div>
             <div id="badgeDuration" class="badge">-- ms/quadro</div>
@@ -718,7 +1000,7 @@
             <span id="delayVal">40</span>
           </div>
           <input type="range" id="delaySlider" min="5" max="150" value="40">
-          <span style="font-size: 0.7rem; color: var(--muted);">Menor = mais rápido (recomendado 25 a 60)</span>
+          <span class="control-hint">Menor = mais rápido (recomendado: 25 a 60 ms)</span>
         </div>
 
         <div class="control-group">
@@ -727,11 +1009,11 @@
             <span id="framesVal">60</span>
           </div>
           <input type="range" id="framesSlider" min="10" max="90" value="60">
-          <span style="font-size: 0.7rem; color: var(--muted);">Amostragem inteligente para caber na flash</span>
+          <span class="control-hint">Amostragem inteligente para caber na memória flash</span>
         </div>
 
         <div class="control-group" style="grid-column: span 2;">
-          <div class="control-label">Enquadramento:</div>
+          <div class="control-label">Enquadramento do Display:</div>
           <div class="radio-group">
             <div class="radio-btn active" data-fit="crop">Preencher (Crop)</div>
             <div class="radio-btn" data-fit="contain">Conter (Barras Pretas)</div>
@@ -744,13 +1026,14 @@
     <!-- Upload Action -->
     <div style="display: flex; flex-direction: column; gap: 8px;">
       <button id="btnUpload" class="btn btn-primary" style="width: 100%; padding: 12px;" disabled>
-        ⚡ Enviar para a Telinha do Teclado
+        <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Gravar na Telinha do Teclado
       </button>
       <div id="progressContainer" class="progress-bar-container">
         <div id="progressBar" class="progress-bar"></div>
       </div>
       <div id="progressInfo" class="progress-info" style="display: none;">
-        <span id="progressMsg">Iniciando...</span>
+        <span id="progressMsg">Iniciando gravação...</span>
         <span id="progressPct">0%</span>
       </div>
     </div>
@@ -760,10 +1043,14 @@
   <div id="tab-device" class="tab-pane">
     <!-- Clock Sync -->
     <div class="panel">
-      <div class="panel-title">🕒 Relógio da Tela TFT</div>
-      <p style="font-size: 0.8rem; color: var(--muted);">Sincroniza o relógio interno exibido na telinha do K86 diretamente com o horário do seu computador.</p>
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Relógio da Tela TFT
+      </h2>
+      <p class="panel-desc">Sincroniza o relógio interno exibido na telinha do K86 diretamente com o horário do seu computador.</p>
       <div style="display: flex; justify-content: flex-end;">
         <button id="btnSyncClock" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
           Sincronizar com Horário do PC
         </button>
       </div>
@@ -771,8 +1058,11 @@
 
     <!-- Debounce -->
     <div class="panel">
-      <div class="panel-title">⚡ Debounce de Teclas (Tempo de Resposta)</div>
-      <p style="font-size: 0.8rem; color: var(--muted);">Valores mais baixos diminuem a latência das teclas; aumente caso sinta repetições involuntárias (duplo clique).</p>
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Debounce de Teclas (Tempo de Resposta)
+      </h2>
+      <p class="panel-desc">Valores mais baixos diminuem a latência das teclas; aumente caso sinta repetições involuntárias (duplo clique).</p>
       <div class="control-group">
         <div class="control-label">
           Tempo de Debounce:
@@ -781,17 +1071,23 @@
         <input type="range" id="debounceSlider" min="1" max="10" value="3">
       </div>
       <div style="display: flex; justify-content: flex-end;">
-        <button id="btnSaveDebounce" class="btn btn-secondary">Salvar Debounce</button>
+        <button id="btnSaveDebounce" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Salvar Debounce
+        </button>
       </div>
     </div>
 
     <!-- Hardware Switches -->
     <div class="panel">
-      <div class="panel-title">⚙️ Interruptores de Hardware</div>
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><path d="M12 20v-6M6 20V10M18 20V4"/><circle cx="12" cy="10" r="2"/><circle cx="6" cy="14" r="2"/><circle cx="18" cy="8" r="2"/></svg>
+        Interruptores de Hardware
+      </h2>
       
       <div class="switch-row">
         <div class="switch-info">
-          <h4>Bloquear Tecla Windows (Win Lock)</h4>
+          <h3>Bloquear Tecla Windows (Win Lock)</h3>
           <p>Desativa a tecla Windows durante jogos para evitar saídas acidentais.</p>
         </div>
         <label class="toggle-switch">
@@ -802,7 +1098,7 @@
 
       <div class="switch-row">
         <div class="switch-info">
-          <h4>Inverter WASD com as Setas</h4>
+          <h3>Inverter WASD com as Setas</h3>
           <p>Troca a função das teclas W/A/S/D pelas teclas de setas direcionais.</p>
         </div>
         <label class="toggle-switch">
@@ -813,7 +1109,7 @@
 
       <div class="switch-row">
         <div class="switch-info">
-          <h4>Desligar Iluminação das Teclas (Backlight)</h4>
+          <h3>Desligar Iluminação das Teclas (Backlight)</h3>
           <p>Apaga todos os LEDs sob as teclas do teclado.</p>
         </div>
         <label class="toggle-switch">
@@ -824,7 +1120,7 @@
 
       <div class="switch-row">
         <div class="switch-info">
-          <h4>Desligar LEDs Laterais (Side Light)</h4>
+          <h3>Desligar LEDs Laterais (Side Light)</h3>
           <p>Desativa as faixas luminosas nas laterais do K86.</p>
         </div>
         <label class="toggle-switch">
@@ -834,13 +1130,19 @@
       </div>
 
       <div style="display: flex; justify-content: flex-end; padding-top: 6px;">
-        <button id="btnSaveOptions" class="btn btn-secondary">Aplicar Opções</button>
+        <button id="btnSaveOptions" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Aplicar Opções
+        </button>
       </div>
     </div>
 
     <!-- Sleep Timers -->
     <div class="panel">
-      <div class="panel-title">🌙 Temporizadores de Suspensão (Economia de Bateria)</div>
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        Temporizadores de Suspensão (Economia de Bateria)
+      </h2>
       <div class="controls-grid" style="border: none; padding-top: 0;">
         <div class="control-group">
           <label class="control-label">Hibernação 2.4 GHz:</label>
@@ -873,7 +1175,10 @@
         </div>
       </div>
       <div style="display: flex; justify-content: flex-end;">
-        <button id="btnSaveSleep" class="btn btn-secondary">Salvar Temporizadores</button>
+        <button id="btnSaveSleep" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Salvar Temporizadores
+        </button>
       </div>
     </div>
   </div>
@@ -881,7 +1186,10 @@
   <!-- TAB 3: RGB LIGHTING -->
   <div id="tab-lighting" class="tab-pane">
     <div class="panel">
-      <div class="panel-title">💡 Efeitos e Cores RGB</div>
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        Efeitos e Iluminação das Teclas
+      </h2>
 
       <div class="control-group">
         <label class="control-label">Modo / Efeito de Iluminação:</label>
@@ -910,28 +1218,38 @@
       <div class="control-group" style="padding-top: 6px;">
         <div style="display: flex; justify-content: space-between; align-items: center;">
           <label class="control-label" style="margin: 0;">Modo de Cor:</label>
-          <div class="radio-group" style="max-width: 200px;">
+          <div class="radio-group" style="max-width: 220px;">
             <div class="radio-btn active" id="btnColorCustom" data-rainbow="0">Cor Fixa</div>
             <div class="radio-btn" id="btnColorRainbow" data-rainbow="1">Arco-íris</div>
           </div>
         </div>
 
-        <!-- Custom Color Section with Wheel and Presets -->
+        <!-- Custom Color Section for Keys -->
         <div id="groupCustomColor" class="color-section">
-          <div class="wheel-container">
-            <canvas id="colorWheelCanvas" width="140" height="140"></canvas>
-            <div id="wheelCursor"></div>
-          </div>
-          <div class="color-presets-col">
-            <div class="color-preview-large">
+          <div class="color-hub-row">
+            <div class="color-chip-wrapper" title="Clique para abrir o seletor nativo do sistema">
               <div id="colorChip" class="color-chip"></div>
-              <div>
-                <div id="labelColorHex" style="font-family: monospace; font-size: 0.95rem; font-weight: 600;">#00FFFF</div>
-                <div id="labelColorRgb" style="font-size: 0.72rem; color: var(--muted);">RGB(0, 255, 255)</div>
+              <input type="color" id="nativeColorMain" class="native-color-picker" value="#00ffff" title="Seletor de cor">
+            </div>
+            <div class="color-meta">
+              <div class="color-hex-input-group">
+                <input type="text" id="inputColorHex" class="color-hex-input" value="#00FFFF" maxlength="7" spellcheck="false" title="Código HEX">
+                <span id="labelColorRgb" class="color-rgb-label">RGB(0, 255, 255)</span>
               </div>
             </div>
-            <div style="font-size: 0.72rem; color: var(--muted); margin-top: 2px;">Cores Rápidas:</div>
-            <div class="color-presets" id="colorPresets"></div>
+          </div>
+
+          <div class="hue-slider-group">
+            <div class="hue-slider-label">
+              <span>Matiz Espectral (Hue):</span>
+              <span id="hueValMain" style="font-family: monospace; font-size: 0.82rem; color: var(--accent);">180°</span>
+            </div>
+            <input type="range" id="hueSliderMain" class="hue-slider" min="0" max="360" value="180">
+          </div>
+
+          <div class="color-presets-wrapper">
+            <span class="color-presets-title">Cores Rápidas:</span>
+            <div class="color-presets-grid" id="colorPresets"></div>
           </div>
         </div>
       </div>
@@ -955,14 +1273,19 @@
       </div>
       <div style="display: flex; justify-content: flex-end; padding-top: 10px;">
         <button id="btnApplyLed" class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2"/></svg>
           Aplicar Iluminação
         </button>
       </div>
     </div>
+
     <!-- Side LED Lighting Panel -->
     <div class="panel">
-      <div class="panel-title">🌈 Iluminação das Barras Laterais (Side LEDs)</div>
-      <p style="font-size: 0.8rem; color: var(--muted);">Controle dedicado das fitas de LED nas bordas esquerda e direita do Attack Shark K86.</p>
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M17 3v18"/></svg>
+        Iluminação das Barras Laterais (Side LEDs)
+      </h2>
+      <p class="panel-desc">Controle dedicado das fitas de LED nas bordas esquerda e direita do Attack Shark K86.</p>
 
       <div class="control-group">
         <label class="control-label">Modo dos LEDs Laterais:</label>
@@ -976,24 +1299,50 @@
         </select>
       </div>
 
-      <div class="controls-grid" style="border: none; padding-top: 6px;">
-        <div class="control-group">
-          <label class="control-label">Modo de Cor Lateral:</label>
-          <div class="radio-group">
+      <div class="control-group" style="padding-top: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label class="control-label" style="margin: 0;">Modo de Cor Lateral:</label>
+          <div class="radio-group" style="max-width: 220px;">
             <div class="radio-btn active" id="btnSledColorCustom">Cor Fixa</div>
             <div class="radio-btn" id="btnSledColorRainbow">Arco-íris</div>
           </div>
         </div>
 
-        <div class="control-group" id="groupSledCustomColor">
-          <label class="control-label">Cor das Barras:</label>
-          <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
-            <div id="sledColorChip" class="color-chip" style="width: 28px; height: 28px; background: #00ffff;"></div>
-            <span id="labelSledColorHex" style="font-family: monospace; font-size: 0.85rem; font-weight: 600;">#00FFFF</span>
-            <button id="btnCopyMainColor" class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.72rem; margin-left: auto;">Copiar Cor Principal</button>
+        <!-- Custom Color Section for Side LEDs (Identical Architecture) -->
+        <div id="groupSledCustomColor" class="color-section">
+          <div class="color-hub-row">
+            <div class="color-chip-wrapper" title="Clique para abrir o seletor nativo do sistema">
+              <div id="sledColorChip" class="color-chip"></div>
+              <input type="color" id="nativeColorSled" class="native-color-picker" value="#00ffff" title="Seletor de cor lateral">
+            </div>
+            <div class="color-meta">
+              <div class="color-hex-input-group">
+                <input type="text" id="inputSledColorHex" class="color-hex-input" value="#00FFFF" maxlength="7" spellcheck="false" title="Código HEX">
+                <span id="labelSledColorRgb" class="color-rgb-label">RGB(0, 255, 255)</span>
+              </div>
+            </div>
+            <button id="btnCopyMainColor" class="btn btn-secondary" style="margin-left: auto; padding: 6px 12px; font-size: 0.82rem;">
+              <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Copiar Cor das Teclas
+            </button>
+          </div>
+
+          <div class="hue-slider-group">
+            <div class="hue-slider-label">
+              <span>Matiz Espectral (Hue):</span>
+              <span id="hueValSled" style="font-family: monospace; font-size: 0.82rem; color: var(--accent);">180°</span>
+            </div>
+            <input type="range" id="hueSliderSled" class="hue-slider" min="0" max="360" value="180">
+          </div>
+
+          <div class="color-presets-wrapper">
+            <span class="color-presets-title">Cores Rápidas:</span>
+            <div class="color-presets-grid" id="sledColorPresets"></div>
           </div>
         </div>
+      </div>
 
+      <div class="controls-grid" style="border: none; padding-top: 6px;">
         <div class="control-group">
           <div class="control-label">
             Brilho Lateral:
@@ -1010,20 +1359,22 @@
           <input type="range" id="sliderSledSpeed" min="0" max="4" value="2">
         </div>
       </div>
-
       <div style="display: flex; justify-content: flex-end; padding-top: 10px;">
         <button id="btnApplySled" class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M17 3v18"/></svg>
           Aplicar LEDs Laterais
         </button>
       </div>
     </div>
-
   </div>
 
   <!-- TAB 4: DEVICE INFO & MAINTENANCE -->
   <div id="tab-info" class="tab-pane">
     <div class="panel">
-      <div class="panel-title">ℹ️ Informações de Hardware</div>
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 9h6v6H9zM9 1v2M15 1v2M9 21v2M15 21v2M1 9h2M1 15h2M21 9h2M21 15h2"/></svg>
+        Informações de Hardware
+      </h2>
       <table class="info-table">
         <tbody>
           <tr><td>Modelo:</td><td id="infoModel">Attack Shark K86</td></tr>
@@ -1036,11 +1387,15 @@
       </table>
     </div>
 
-    <div class="panel" style="border-color: rgba(239, 68, 68, 0.3);">
-      <div class="panel-title" style="color: #f85149;">⚠️ Restauração de Fábrica</div>
-      <p style="font-size: 0.8rem; color: var(--muted);">Restaura todas as configurações, tempos de suspensão, debounce e iluminação para os padrões originais de fábrica do teclado.</p>
+    <div class="panel" style="border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.03);">
+      <h2 class="panel-title" style="color: var(--error-text);">
+        <svg viewBox="0 0 24 24" style="stroke: var(--error-text);"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Restauração aos Padrões de Fábrica
+      </h2>
+      <p class="panel-desc">Restaura todas as configurações, tempos de suspensão, debounce e iluminação para os padrões originais de fábrica do teclado.</p>
       <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
         <button id="btnFactoryReset" class="btn btn-danger">
+          <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           Restaurar Padrões de Fábrica
         </button>
       </div>
@@ -1049,7 +1404,7 @@
 
   <!-- Footer -->
   <footer>
-    <span>Resolução nativa: 240x135 (16:9)</span>
+    <span>Resolução nativa da tela TFT: 240×135 px (16:9)</span>
     <div class="links-group">
       <a href="#" onclick="openExternal('https://br.pinterest.com/mayssarf/gifs-for-attack-shark-k86'); return false;">Coleção Pinterest</a>
       <a href="#" onclick="openExternal('https://github.com/marcel-pietron/k86-screen-frames'); return false;">GIFs no GitHub</a>
@@ -1085,6 +1440,12 @@
         }
       });
     });
+
+    // Auto-activate tab from URL hash if provided
+    if (window.location.hash) {
+      const initialTab = document.querySelector(`.tab-btn[data-tab="${window.location.hash.slice(1)}"]`);
+      if (initialTab) initialTab.click();
+    }
 
     // IPC Messaging
     function sendToPython(action, data = {}) {
@@ -1177,7 +1538,7 @@
         updateRainbowButtons();
 
         if (s.led.rgb && s.led.rgb.length === 3) {
-          setSelectedColor(s.led.rgb[0], s.led.rgb[1], s.led.rgb[2], true);
+          setSelectedColor(s.led.rgb[0], s.led.rgb[1], s.led.rgb[2]);
         }
       }
       // Side LED (SLEDPARAM)
@@ -1192,10 +1553,7 @@
         updateSledRainbowButtons();
 
         if (s.sled.rgb && s.sled.rgb.length === 3) {
-          currentSledRgb = [...s.sled.rgb];
-          const hex = '#' + s.sled.rgb.map(c => c.toString(16).padStart(2, '0')).join('');
-          document.getElementById('sledColorChip').style.background = hex;
-          document.getElementById('labelSledColorHex').textContent = hex.toUpperCase();
+          setSelectedSledColor(s.sled.rgb[0], s.sled.rgb[1], s.sled.rgb[2]);
         }
       }
     };
@@ -1261,6 +1619,11 @@
       reader.onload = (e) => {
         currentFileBase64 = e.target.result;
         previewImg.src = currentFileBase64;
+        dropzone.classList.add('compact');
+        const dzText = dropzone.querySelector('.dropzone-text');
+        const dzSubtext = dropzone.querySelector('.dropzone-subtext');
+        if (dzText) dzText.textContent = 'Substituir arquivo (.gif, .png, .jpg)';
+        if (dzSubtext) dzSubtext.textContent = 'Clique ou solte outro arquivo para trocar a animação';
         previewPanel.style.display = 'flex';
         btnUpload.disabled = false;
         sendToPython('inspect', { image: currentFileBase64 });
@@ -1331,12 +1694,20 @@
       sendToPython('set_debounce', { value: parseInt(debounceSlider.value, 10) });
     });
 
-    document.getElementById('btnSaveOptions').addEventListener('click', () => {
+    function applyHardwareOptions() {
       sendToPython('set_options', {
         win_lock: document.getElementById('switchWinLock').checked,
         wasd_swap: document.getElementById('switchWasdSwap').checked,
         led_off: document.getElementById('switchLedOff').checked,
         side_led_off: document.getElementById('switchSideLedOff').checked,
+      });
+    }
+
+    document.getElementById('btnSaveOptions').addEventListener('click', applyHardwareOptions);
+
+    ['switchWinLock', 'switchWasdSwap', 'switchLedOff', 'switchSideLedOff'].forEach(id => {
+      document.getElementById(id).addEventListener('change', () => {
+        applyHardwareOptions();
       });
     });
 
@@ -1349,47 +1720,16 @@
       });
     });
 
-    // Tab 3: Lighting listeners & Color Wheel
+    // Tab 3: Lighting listeners & Tactical Unified Color Hubs
     let currentRgb = [0, 255, 255];
-    const wheelCanvas = document.getElementById('colorWheelCanvas');
-    const wheelCtx = wheelCanvas.getContext('2d');
-    const wheelCursor = document.getElementById('wheelCursor');
-    const colorChip = document.getElementById('colorChip');
-    const labelColorHex = document.getElementById('labelColorHex');
-    const labelColorRgb = document.getElementById('labelColorRgb');
-    const colorPresetsContainer = document.getElementById('colorPresets');
+    let currentSledRgb = [0, 255, 255];
 
-    // Draw HSV Color Wheel
-    function drawColorWheel() {
-      const size = wheelCanvas.width;
-      const center = size / 2;
-      const radius = center - 2;
-      const imgData = wheelCtx.createImageData(size, size);
-      const data = imgData.data;
-
-      for (let y = 0; y < size; y++) {
-        for (let x = 0; x < size; x++) {
-          const dx = x - center;
-          const dy = y - center;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          const idx = (y * size + x) * 4;
-
-          if (dist <= radius) {
-            let angle = Math.atan2(dy, dx) * (180 / Math.PI);
-            if (angle < 0) angle += 360;
-            const sat = Math.min(1, dist / radius);
-            const [r, g, b] = hsvToRgb(angle, sat, 1.0);
-            data[idx] = r;
-            data[idx + 1] = g;
-            data[idx + 2] = b;
-            data[idx + 3] = 255;
-          } else {
-            data[idx + 3] = 0;
-          }
-        }
-      }
-      wheelCtx.putImageData(imgData, 0, 0);
-    }
+    const presetColors = [
+      '#FF0000', '#FF3B00', '#FF8800', '#FFD000',
+      '#00FF00', '#00FF88', '#00FFFF', '#0088FF',
+      '#0022FF', '#7B00FF', '#CC00FF', '#FF0088',
+      '#FFFFFF', '#FFE4CD', '#00FFAA', '#FF0055'
+    ];
 
     function hsvToRgb(h, s, v) {
       const c = v * s;
@@ -1423,84 +1763,157 @@
       return [h, s, v];
     }
 
-    function setSelectedColor(r, g, b, updateCursorPos = true) {
+    // --- Keys Color Hub Controller ---
+    const colorChip = document.getElementById('colorChip');
+    const nativeColorMain = document.getElementById('nativeColorMain');
+    const inputColorHex = document.getElementById('inputColorHex');
+    const labelColorRgb = document.getElementById('labelColorRgb');
+    const hueSliderMain = document.getElementById('hueSliderMain');
+    const hueValMain = document.getElementById('hueValMain');
+    const colorPresetsContainer = document.getElementById('colorPresets');
+
+    function setSelectedColor(r, g, b, fromHue = false) {
       currentRgb = [r, g, b];
       const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
       colorChip.style.background = hex;
-      labelColorHex.textContent = hex;
+      nativeColorMain.value = hex;
+      inputColorHex.value = hex;
       labelColorRgb.textContent = `RGB(${r}, ${g}, ${b})`;
 
-      if (updateCursorPos) {
-        const [h, s] = rgbToHsv(r, g, b);
-        const center = wheelCanvas.width / 2;
-        const radius = (center - 2) * s;
-        const rad = h * (Math.PI / 180);
-        const x = center + radius * Math.cos(rad);
-        const y = center + radius * Math.sin(rad);
-        wheelCursor.style.left = x + 'px';
-        wheelCursor.style.top = y + 'px';
+      if (!fromHue) {
+        const [h] = rgbToHsv(r, g, b);
+        const roundedHue = Math.round(h);
+        hueSliderMain.value = roundedHue;
+        hueValMain.textContent = `${roundedHue}°`;
       }
+
+      colorPresetsContainer.querySelectorAll('.preset-dot').forEach(dot => {
+        dot.classList.toggle('active', dot.dataset.hex.toUpperCase() === hex);
+      });
     }
 
-    // Color wheel click & drag interaction
-    let isPicking = false;
-    function pickColorFromEvent(e) {
-      const rect = wheelCanvas.getBoundingClientRect();
-      const scale = wheelCanvas.width / rect.width;
-      const x = (e.clientX - rect.left) * scale;
-      const y = (e.clientY - rect.top) * scale;
-      const center = wheelCanvas.width / 2;
-      const radius = center - 2;
-      const dx = x - center;
-      const dy = y - center;
-      let dist = Math.sqrt(dx * dx + dy * dy);
-
-      let angle = Math.atan2(dy, dx) * (180 / Math.PI);
-      if (angle < 0) angle += 360;
-      const sat = Math.min(1, dist / radius);
-      const [r, g, b] = hsvToRgb(angle, sat, 1.0);
-
-      const clampedDist = Math.min(dist, radius);
-      const rad = angle * (Math.PI / 180);
-      const curX = center + clampedDist * Math.cos(rad);
-      const curY = center + clampedDist * Math.sin(rad);
-      wheelCursor.style.left = curX + 'px';
-      wheelCursor.style.top = curY + 'px';
-
-      setSelectedColor(r, g, b, false);
-    }
-
-    wheelCanvas.addEventListener('mousedown', (e) => {
-      isPicking = true;
-      pickColorFromEvent(e);
+    nativeColorMain.addEventListener('input', (e) => {
+      const hex = e.target.value;
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      setSelectedColor(r, g, b);
     });
-    window.addEventListener('mousemove', (e) => {
-      if (isPicking) pickColorFromEvent(e);
-    });
-    window.addEventListener('mouseup', () => isPicking = false);
 
-    // Presets bar
-    const presetColors = [
-      '#FF0000', '#FF4500', '#FFA500', '#FFFF00', '#00FF00', '#00FFFF', '#0080FF',
-      '#0000FF', '#7B00FF', '#FF00FF', '#FF1493', '#FFFFFF', '#FFB6C1', '#808080'
-    ];
+    inputColorHex.addEventListener('change', (e) => {
+      let val = e.target.value.trim().toUpperCase();
+      if (!val.startsWith('#')) val = '#' + val;
+      if (/^#[0-9A-F]{6}$/i.test(val)) {
+        const r = parseInt(val.slice(1, 3), 16);
+        const g = parseInt(val.slice(3, 5), 16);
+        const b = parseInt(val.slice(5, 7), 16);
+        setSelectedColor(r, g, b);
+      } else {
+        const hex = '#' + currentRgb.map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+        inputColorHex.value = hex;
+      }
+    });
+
+    hueSliderMain.addEventListener('input', (e) => {
+      const h = parseInt(e.target.value, 10);
+      hueValMain.textContent = `${h}°`;
+      const [r, g, b] = hsvToRgb(h, 1.0, 1.0);
+      setSelectedColor(r, g, b, true);
+    });
+
     presetColors.forEach(hex => {
       const dot = document.createElement('div');
       dot.className = 'preset-dot';
       dot.style.background = hex;
       dot.title = hex;
+      dot.dataset.hex = hex;
       dot.addEventListener('click', () => {
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
         const b = parseInt(hex.slice(5, 7), 16);
-        setSelectedColor(r, g, b, true);
+        setSelectedColor(r, g, b);
       });
       colorPresetsContainer.appendChild(dot);
     });
 
-    drawColorWheel();
-    setSelectedColor(0, 255, 255);
+    // --- Side LEDs Color Hub Controller ---
+    const sledColorChip = document.getElementById('sledColorChip');
+    const nativeColorSled = document.getElementById('nativeColorSled');
+    const inputSledColorHex = document.getElementById('inputSledColorHex');
+    const labelSledColorRgb = document.getElementById('labelSledColorRgb');
+    const hueSliderSled = document.getElementById('hueSliderSled');
+    const hueValSled = document.getElementById('hueValSled');
+    const sledColorPresetsContainer = document.getElementById('sledColorPresets');
 
+    function setSelectedSledColor(r, g, b, fromHue = false) {
+      currentSledRgb = [r, g, b];
+      const hex = '#' + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+      sledColorChip.style.background = hex;
+      nativeColorSled.value = hex;
+      inputSledColorHex.value = hex;
+      labelSledColorRgb.textContent = `RGB(${r}, ${g}, ${b})`;
+
+      if (!fromHue) {
+        const [h] = rgbToHsv(r, g, b);
+        const roundedHue = Math.round(h);
+        hueSliderSled.value = roundedHue;
+        hueValSled.textContent = `${roundedHue}°`;
+      }
+
+      sledColorPresetsContainer.querySelectorAll('.preset-dot').forEach(dot => {
+        dot.classList.toggle('active', dot.dataset.hex.toUpperCase() === hex);
+      });
+    }
+
+    nativeColorSled.addEventListener('input', (e) => {
+      const hex = e.target.value;
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      setSelectedSledColor(r, g, b);
+    });
+
+    inputSledColorHex.addEventListener('change', (e) => {
+      let val = e.target.value.trim().toUpperCase();
+      if (!val.startsWith('#')) val = '#' + val;
+      if (/^#[0-9A-F]{6}$/i.test(val)) {
+        const r = parseInt(val.slice(1, 3), 16);
+        const g = parseInt(val.slice(3, 5), 16);
+        const b = parseInt(val.slice(5, 7), 16);
+        setSelectedSledColor(r, g, b);
+      } else {
+        const hex = '#' + currentSledRgb.map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+        inputSledColorHex.value = hex;
+      }
+    });
+
+    hueSliderSled.addEventListener('input', (e) => {
+      const h = parseInt(e.target.value, 10);
+      hueValSled.textContent = `${h}°`;
+      const [r, g, b] = hsvToRgb(h, 1.0, 1.0);
+      setSelectedSledColor(r, g, b, true);
+    });
+
+    presetColors.forEach(hex => {
+      const dot = document.createElement('div');
+      dot.className = 'preset-dot';
+      dot.style.background = hex;
+      dot.title = hex;
+      dot.dataset.hex = hex;
+      dot.addEventListener('click', () => {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        setSelectedSledColor(r, g, b);
+      });
+      sledColorPresetsContainer.appendChild(dot);
+    });
+
+    document.getElementById('btnCopyMainColor').addEventListener('click', () => {
+      setSelectedSledColor(currentRgb[0], currentRgb[1], currentRgb[2]);
+    });
+
+    // Rainbow Mode Controls
     function updateRainbowButtons() {
       if (isRainbow) {
         document.getElementById('btnColorRainbow').classList.add('active');
@@ -1523,30 +1936,6 @@
       isRainbow = true;
       updateRainbowButtons();
     });
-
-    const sliderBrightness = document.getElementById('sliderBrightness');
-    sliderBrightness.addEventListener('input', () => {
-      const v = parseInt(sliderBrightness.value, 10);
-      document.getElementById('labelBrightness').textContent = v === 4 ? '4 (Máx)' : v;
-    });
-
-    const sliderSpeed = document.getElementById('sliderSpeed');
-    sliderSpeed.addEventListener('input', () => {
-      document.getElementById('labelSpeed').textContent = sliderSpeed.value;
-    });
-
-    document.getElementById('btnApplyLed').addEventListener('click', () => {
-      sendToPython('set_led', {
-        mode: parseInt(document.getElementById('selLedMode').value, 10),
-        speed: parseInt(sliderSpeed.value, 10),
-        brightness: parseInt(sliderBrightness.value, 10),
-        rainbow: isRainbow,
-        rgb: currentRgb
-      });
-    });
-    // Side LED Controls & Listeners
-    let isSledRainbow = false;
-    let currentSledRgb = [0, 255, 255];
 
     function updateSledRainbowButtons() {
       if (isSledRainbow) {
@@ -1571,11 +1960,26 @@
       updateSledRainbowButtons();
     });
 
-    document.getElementById('btnCopyMainColor').addEventListener('click', () => {
-      currentSledRgb = [...currentRgb];
-      const hex = '#' + currentSledRgb.map(c => c.toString(16).padStart(2, '0')).join('');
-      document.getElementById('sledColorChip').style.background = hex;
-      document.getElementById('labelSledColorHex').textContent = hex.toUpperCase();
+    // Sliders & Actions
+    const sliderBrightness = document.getElementById('sliderBrightness');
+    sliderBrightness.addEventListener('input', () => {
+      const v = parseInt(sliderBrightness.value, 10);
+      document.getElementById('labelBrightness').textContent = v === 4 ? '4 (Máx)' : v;
+    });
+
+    const sliderSpeed = document.getElementById('sliderSpeed');
+    sliderSpeed.addEventListener('input', () => {
+      document.getElementById('labelSpeed').textContent = sliderSpeed.value;
+    });
+
+    document.getElementById('btnApplyLed').addEventListener('click', () => {
+      sendToPython('set_led', {
+        mode: parseInt(document.getElementById('selLedMode').value, 10),
+        speed: parseInt(sliderSpeed.value, 10),
+        brightness: parseInt(sliderBrightness.value, 10),
+        rainbow: isRainbow,
+        rgb: currentRgb
+      });
     });
 
     const sliderSledBrightness = document.getElementById('sliderSledBrightness');
@@ -1599,6 +2003,9 @@
       });
     });
 
+    // Initialize Default Colors
+    setSelectedColor(0, 255, 255);
+    setSelectedSledColor(0, 255, 255);
 
     // Tab 4: Reset
     document.getElementById('btnFactoryReset').addEventListener('click', () => {

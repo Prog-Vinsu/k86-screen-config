@@ -271,6 +271,10 @@ def read_keyboard_settings(dev: HidrawDevice, dev_id: int) -> dict:
         "rgb": srgb,
     }
 
+    if brightness == 0:
+        options["led_off"] = True
+    if smode == 0 or sbrightness == 0:
+        options["side_led_off"] = True
     return {"debounce": deb, "options": options, "sleep": sleep, "led": led, "sled": sled}
 
 def write_debounce(dev: HidrawDevice, dev_id: int, val_ms: int) -> bool:
@@ -364,6 +368,17 @@ def write_side_light(dev: HidrawDevice, dev_id: int, enabled: bool) -> bool:
         return write_sled_param(dev, dev_id, mode=1, speed=2, brightness=4, rainbow=False, rgb=[0, 255, 255])
     else:
         return write_sled_param(dev, dev_id, mode=0, speed=2, brightness=0, rainbow=False, rgb=[0, 0, 0])
+
+
+def write_main_light(dev: HidrawDevice, dev_id: int, enabled: bool) -> bool:
+    s = read_keyboard_settings(dev, dev_id)
+    cur_led = s.get("led", {})
+    mode = cur_led.get("mode", 1)
+    speed = cur_led.get("speed", 2)
+    rainbow = cur_led.get("rainbow", False)
+    rgb = cur_led.get("rgb", [0, 255, 255])
+    brightness = 4 if enabled else 0
+    return write_led_param(dev, dev_id, mode=mode, speed=speed, brightness=brightness, rainbow=rainbow, rgb=rgb)
 
 
 
@@ -679,7 +694,10 @@ def launch_native_gui(dry_run: bool = False):
                 dev = HidrawDevice(node)
                 try:
                     write_options(dev, dev_id or 1168, data)
-                    # Sincroniza também o estado físico das barras laterais via SLEDPARAM 0x08
+                    time.sleep(0.04)
+                    if "led_off" in data:
+                        write_main_light(dev, dev_id or 1168, enabled=not data.get("led_off"))
+                        time.sleep(0.04)
                     if "side_led_off" in data:
                         write_side_light(dev, dev_id or 1168, enabled=not data.get("side_led_off"))
                     eval_js(f"window.onFeedback({json.dumps({'success': True, 'message': 'Interruptores de hardware atualizados!'})});")
@@ -956,9 +974,14 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                 if dev_info:
                     dev = HidrawDevice(dev_info[0])
                     try:
-                        write_options(dev, dev_info[3] or 1168, payload)
+                        dev_id = dev_info[3] or 1168
+                        write_options(dev, dev_id, payload)
+                        time.sleep(0.04)
+                        if "led_off" in payload:
+                            write_main_light(dev, dev_id, enabled=not payload.get("led_off"))
+                            time.sleep(0.04)
                         if "side_led_off" in payload:
-                            write_side_light(dev, dev_info[3] or 1168, enabled=not payload.get("side_led_off"))
+                            write_side_light(dev, dev_id, enabled=not payload.get("side_led_off"))
                         send_json({"success": True, "message": "Opções salvas!"})
                     finally:
                         dev.close()
