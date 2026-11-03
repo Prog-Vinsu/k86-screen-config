@@ -1004,3 +1004,157 @@
     .links-group a:hover {
       text-decoration: underline;
     }
+
+    /* ==============================================================================
+       MOUSE X11 DEDICATED STYLES
+       ============================================================================== */
+    #mouseDpiStagesContainer {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    @media (max-width: 960px) {
+      #mouseDpiStagesContainer {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    .mouse-stage-card {
+      background: var(--card-hover);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .mouse-stage-card:hover {
+      border-color: var(--border-focus);
+      background: #192131;
+    }
+
+    .mouse-stage-card.active {
+      background: rgba(0, 210, 255, 0.08);
+      border-color: var(--telemetry);
+      box-shadow: 0 0 14px rgba(0, 210, 255, 0.12);
+    }
+
+    .mouse-stage-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .mouse-stage-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .mouse-stage-card.active .mouse-stage-title {
+      color: var(--telemetry);
+    }
+
+    .mouse-stage-color-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 6px currentColor;
+    }
+
+    .mouse-stage-radio {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border-focus);
+      border-radius: 50%;
+      outline: none;
+      cursor: pointer;
+      display: grid;
+      place-content: center;
+      transition: all 0.15s ease;
+    }
+
+    .mouse-stage-radio:checked {
+      border-color: var(--telemetry);
+    }
+
+    .mouse-stage-radio:checked::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--telemetry);
+    }
+
+    .mouse-stage-input-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mouse-stage-input-row input[type="number"] {
+      flex: 1;
+      padding: 6px 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      font-family: "JetBrains Mono", monospace;
+      border-radius: var(--radius-sm);
+      background: #090c10;
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .mouse-stage-input-row input[type="number"]:focus {
+      border-color: var(--telemetry);
+      background: #0e141f;
+    }
+
+    .mouse-stage-input-row .unit {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* Switch row for Mouse Settings */
+    .mouse-switch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding-top: 14px;
+      border-top: 1px solid var(--border);
+    }
+
+    .mouse-switch-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--card-hover);
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+    }
+
+    .mouse-switch-item .title {
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .mouse-switch-item .desc {
+      font-size: 0.75rem;
+      color: var(--muted);
+      margin-top: 2px;
+    }

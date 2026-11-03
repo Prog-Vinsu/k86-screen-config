@@ -1,13 +1,12 @@
-# Attack Shark K86 Screen Uploader (Linux)
+# Attack Shark Peripheral Hub (Linux)
 
 [![License: GPL-3.0-or-later](https://img.shields.io/badge/License-GPL--3.0--or--later-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Platform: Linux](https://img.shields.io/badge/Platform-Linux-orange.svg)](#requirements)
 [![Python: 3.10+](https://img.shields.io/badge/Python-3.10%2B-brightgreen.svg)](#requirements)
 
-> Native desktop and CLI utility for uploading **animated GIFs** and still images to the 240×135 TFT display on the **Attack Shark K86** mechanical keyboard on Linux, without requiring Windows, Wine, or virtual machines.
+> Native desktop and CLI utility for configuring **Attack Shark K86** mechanical keyboards (RGB lighting, hardware options, and 240×135 TFT screen GIF uploads) and **Attack Shark X11** gaming mice (DPI stages, polling rate, LOD, angle snap, debounce, battery telemetry) on Linux, without requiring Windows, Wine, or virtual machines.
 
 [🇧🇷 Versão em Português disponível (README.pt-BR.md)](README.pt-BR.md)
-
 ---
 
 ## ⚡ Features
@@ -33,11 +32,19 @@
   * Dedicated control over left and right edge light bars.
   * 6 side lighting modes: Off, Static, Breathing, Neon, Wave, and Snake.
   * Dedicated brightness, speed, and color synchronization with the main backlight.
+* **Attack Shark X11 Mouse Configuration:**
+  * **Wireless 2.4G & Wired Support:** Fully compatible over the 2.4 GHz USB receiver (`1d57:fa60`) and USB-C cable (`1d57:fa55`).
+  * **Live Battery Telemetry:** Real-time autonomous battery readout (`Report 0x03`).
+  * **Sensor Tuning (PixArt PAW3311):** 6 configurable DPI stages (50 to 22,000 DPI) with hardware LED color matching, active stage switching, Angle Snapping, and Ripple Control.
+  * **Polling Rate & LOD:** 125, 250, 500, and 1000 Hz polling rate switching, plus 1mm / 2mm Lift-Off Distance (LOD).
+  * **Key Response & Sleep:** Adjustable switch debounce (1ms to 20ms) and inactivity sleep timer (1 to 15 min).
+* **Unified Device Info Tab:**
+  * Dual-panel system view cleanly separating K86 keyboard and X11 mouse telemetry, device nodes, firmware details, and USB identifiers.
+* **Modular UI Architecture:**
+  * Clean `ui/` directory (`index.html`, `style.css`, `app.js`, `keyboard_preview.js`) without external build tools or bundlers.
 * **Factory Reset:** Send onboard reset command to restore factory defaults.
 * **Dual Operation (GUI + CLI):** Launch without arguments for the visual window, or pass a file path directly for instant command-line uploads.
 * **Dry-Run Mode:** Test image conversion and hardware communication without writing to flash (`--dry-run`).
-
----
 
 ## 🖥️ Compatibility
 
@@ -46,8 +53,10 @@
 | **Attack Shark K86 (Rev 1)** | `3151:4015` | `1168` | `yc3121` (yc500 family) | **Supported & Verified** |
 | **Attack Shark K86 (Rev 2)** | `3151:5002` | `2730` | `yc3123` (gen2 family) | **Supported & Verified** |
 | **Attack Shark K86 (Rev 3)** | `3151:5056` | `4094` | `ry6602` (gen2 family) | *Not supported* (separate display chip) |
+| **Attack Shark X11 (Wireless)** | `1d57:fa60` | N/A | Beken BK3633 / PAW3311 | **Supported (DPI, Polling, Battery, LOD)** |
+| **Attack Shark X11 (Wired)** | `1d57:fa55` | N/A | Beken BK3633 / PAW3311 | **Supported (DPI, Polling, LOD)** |
 
-> **Note on Revision 1 (`1168`):** Data transfer, ready handshake, and flash commit have been verified on hardware. The exact maximum frame count supported by Revision 1 flash remains unconfirmed; the default cap is 60 frames.
+> **Note on K86 Screen Uploads:** Transferring GIFs and images to the K86 screen requires a **USB cable** connection; the keyboard's 2.4G and Bluetooth modes do not expose screen flash write endpoints. The X11 mouse configuration works both wirelessly (2.4G dongle) and wired.
 
 ---
 
@@ -81,9 +90,9 @@ Run the included installer:
 This will:
 1. Generate and install a localized `.desktop` application shortcut to `~/.local/share/applications/`.
 2. Install the application icon into your user icon theme.
-3. Configure the `udev` rule so you can write to the keyboard without `sudo`.
+3. Configure the `udev` rules so you can configure both the K86 keyboard and the X11 mouse without `sudo`.
 
-*After running `install.sh`, unplug and replug the keyboard's USB cable.*
+*After running `install.sh`, unplug and replug the keyboard's USB cable and the mouse receiver.*
 
 ### 2. Launching the GUI
 
@@ -147,12 +156,18 @@ The K86 display has a native resolution of **240×135 pixels** (16:9 widescreen 
 
 ## 🔧 Troubleshooting
 
-* **Permission denied on `/dev/hidrawX`:**
-  Install the udev rule and replug the USB cable:
+* **Permission denied on `/dev/hidrawX` (Keyboard or Mouse):**
+  If you did not run `install.sh`, install the unified udev rule manually and reconnect your devices:
   ```bash
-  echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3151", ATTRS{idProduct}=="4015|5002", MODE="0660", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/70-attack-shark-k86.rules
+  printf '%s\n' \
+    '# Attack Shark K86 Keyboard' \
+    'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3151", ATTRS{idProduct}=="4015|5002", MODE="0660", TAG+="uaccess"' \
+    '# Attack Shark X11 Mouse (Wireless Receiver & Wired)' \
+    'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1d57", ATTRS{idProduct}=="fa60|fa55", MODE="0660", TAG+="uaccess"' \
+    | sudo tee /etc/udev/rules.d/70-attack-shark-devices.rules
   sudo udevadm control --reload-rules && sudo udevadm trigger
   ```
+  *Then unplug and replug the K86 USB cable and the X11 2.4G wireless receiver/dock.*
 * **"Display did not accept announce handshake":**
   Ensure the keyboard is plugged in directly via USB cable (not via unpowered hub). Reconnect the cable. Make sure no other keyboard software (e.g., `sharkfin`) is open.
 * **White horizontal band or corrupted frame:**

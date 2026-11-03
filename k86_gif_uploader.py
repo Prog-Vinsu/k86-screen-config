@@ -22,14 +22,16 @@ import subprocess
 import sys
 import threading
 import time
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
+
+import x11_mouse
 
 try:
     from PIL import Image, ImageOps, ImageSequence
 except ImportError:
     sys.exit("Erro: Pillow não está instalado. Instale com: pip install pillow ou sudo apt install python3-pil")
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 # Constantes do display do K86
 SCREEN_W = 240
@@ -39,8 +41,10 @@ FRAME_RAW_LEN = SCREEN_W * SCREEN_H * 2  # 64.800 bytes (RGB565)
 FRAME_STRIDE = 65536
 
 SUPPORTED_VID_PIDS = [
-    ("3151", "4015"),  # K86 Rev 1 (yc3121 / yc500 - ID 1168)
-    ("3151", "5002"),  # K86 Rev 2 (yc3123 / gen2 - ID 2730)
+    ("3151", "4015", "cable"),     # K86 Rev 1 Cable (yc3121 / yc500 - ID 1168)
+    ("3151", "5002", "cable"),     # K86 Rev 2 Cable (yc3123 / gen2 - ID 2730)
+    ("3151", "4011", "wireless"),  # K86 Rev 1 2.4G Wireless Dongle
+    ("3151", "5006", "wireless"),  # K86 Rev 2 2.4G Wireless Dongle
 ]
 
 VERIFIED_K86_DEVICE_IDS = [1168, 2730]
@@ -118,7 +122,7 @@ class HidrawDevice:
         return None
 
 
-def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int]]]:
+def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int], str]]:
     for hidraw_path in glob.glob("/sys/class/hidraw/hidraw*"):
         dev_dir = os.path.join(hidraw_path, "device")
         uevent_file = os.path.join(dev_dir, "uevent")
@@ -131,9 +135,13 @@ def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int]]]:
             continue
 
         matched_id = None
-        for vid, pid in SUPPORTED_VID_PIDS:
+        conn_type = "cable"
+        for item in SUPPORTED_VID_PIDS:
+            vid, pid = item[0], item[1]
+            ctype = item[2] if len(item) > 2 else "cable"
             if f":{vid.upper()}:{pid.upper()}" in uevent or f"HID_ID=0003:0000{vid}:0000{pid}" in uevent:
                 matched_id = f"{vid}:{pid}"
+                conn_type = ctype
                 break
 
         if not matched_id:
@@ -159,7 +167,7 @@ def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int]]]:
                     except Exception:
                         pass
 
-                    return node, matched_id, name, dev_id
+                    return node, matched_id, name, dev_id, conn_type
             except Exception:
                 continue
 
@@ -603,7 +611,9 @@ def launch_native_gui(dry_run: bool = False):
     ucm = WebKit2.UserContentManager()
     ucm.register_script_message_handler("pybridge")
 
-    win = Gtk.Window(title="Attack Shark K86 Configurator")
+    x11_mouse.mouse_manager.start()
+
+    win = Gtk.Window(title="Attack Shark K86 & X11 Configurator")
     win.set_default_size(700, 840)
     win.set_position(Gtk.WindowPosition.CENTER)
 
@@ -630,7 +640,7 @@ def launch_native_gui(dry_run: bool = False):
                 conflict = check_conflicting_tools()
                 dev_info = find_keyboard_hidraw()
                 if dev_info:
-                    node, vid_pid, name, dev_id = dev_info
+                    node, vid_pid, name, dev_id, conn_type = dev_info
                     id_label = f" [ID: {dev_id}]" if dev_id else ""
                     res = {
                         "connected": True,
@@ -639,6 +649,7 @@ def launch_native_gui(dry_run: bool = False):
                         "name": f"{name}{id_label}",
                         "dev_id": dev_id or 1168,
                         "conflict": conflict,
+                        "conn_type": conn_type,
                     }
                 else:
                     res = {"connected": False, "conflict": conflict}
@@ -649,7 +660,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     settings = read_keyboard_settings(dev, dev_id or 1168)
@@ -662,7 +673,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, _ = dev_info
+                node = dev_info[0]
                 dev = HidrawDevice(node)
                 try:
                     sync_clock(dev)
@@ -677,7 +688,7 @@ def launch_native_gui(dry_run: bool = False):
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
                 val = int(data.get("value", 3))
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     write_debounce(dev, dev_id or 1168, val)
@@ -690,7 +701,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     write_options(dev, dev_id or 1168, data)
@@ -709,7 +720,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     rf = int(data.get("rf_sleep", 180))
@@ -726,7 +737,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     mode = int(data.get("mode", 4))
@@ -743,7 +754,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     mode = int(data.get("mode", 1))
@@ -762,7 +773,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     write_factory_reset(dev, dev_id or 1168)
@@ -814,7 +825,7 @@ def launch_native_gui(dry_run: bool = False):
                         if not dev_info:
                             raise RuntimeError("Teclado K86 não encontrado. Conecte o cabo USB.")
 
-                        hid_node, _, _, _ = dev_info
+                        hid_node = dev_info[0]
                         dev = HidrawDevice(hid_node)
                         try:
                             def on_step(pct, text):
@@ -837,6 +848,15 @@ def launch_native_gui(dry_run: bool = False):
                 if url:
                     subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+            elif action == "mouse_status":
+                m_status = x11_mouse.mouse_manager.get_status()
+                eval_js(f"window.onMouseStatus && window.onMouseStatus({json.dumps(m_status)});")
+
+            elif action == "mouse_apply_settings":
+                cfg = data.get("settings", {})
+                ok = x11_mouse.mouse_manager.apply_settings(cfg)
+                eval_js(f"window.onMouseFeedback && window.onMouseFeedback({json.dumps({'success': ok, 'message': 'Configurações do mouse aplicadas!' if ok else 'Erro ao aplicar configurações no mouse.'})});")
+
         except Exception as e:
             print("Erro no tratamento IPC:", e)
 
@@ -858,8 +878,9 @@ def launch_fallback_browser_gui(dry_run: bool = False):
     import http.server
     import urllib.parse
 
-    token = secrets.token_hex(24)
+    x11_mouse.mouse_manager.start()
 
+    token = secrets.token_hex(24)
     class SecureHandler(http.server.BaseHTTPRequestHandler):
         def log_message(self, format, *args):
             pass
@@ -940,16 +961,16 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                 dev_info = find_keyboard_hidraw()
                 conflict = check_conflicting_tools()
                 if dev_info:
-                    node, vid_pid, name, dev_id = dev_info
+                    node, vid_pid, name, dev_id, conn_type = dev_info
                     id_label = f" [ID: {dev_id}]" if dev_id else ""
-                    send_json({"connected": True, "node": node, "vid_pid": vid_pid, "name": f"{name}{id_label}", "dev_id": dev_id or 1168, "conflict": conflict})
+                    send_json({"connected": True, "node": node, "vid_pid": vid_pid, "name": f"{name}{id_label}", "dev_id": dev_id or 1168, "conflict": conflict, "conn_type": conn_type})
                 else:
                     send_json({"connected": False, "conflict": conflict})
 
             elif parsed.path == "/api/get_settings":
                 dev_info = find_keyboard_hidraw()
                 if dev_info:
-                    node, _, _, dev_id = dev_info
+                    node, vid_pid, name, dev_id, conn_type = dev_info
                     dev = HidrawDevice(node)
                     try:
                         s = read_keyboard_settings(dev, dev_id or 1168)
@@ -1064,6 +1085,20 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                 except Exception as e:
                     resp = {"ok": False, "error": str(e)}
                 send_json(resp)
+            elif parsed.path == "/api/mouse_status":
+                m_status = x11_mouse.mouse_manager.get_status()
+                send_json(m_status)
+
+            elif parsed.path == "/api/mouse_apply_settings":
+                cfg = payload.get("settings", {})
+                ok = x11_mouse.mouse_manager.apply_settings(cfg)
+                send_json({"success": ok, "message": "Configurações do mouse aplicadas!" if ok else "Erro ao aplicar configurações no mouse."})
+
+            elif parsed.path == "/api/open_external":
+                url = payload.get("url")
+                if url:
+                    subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                send_json({"success": True})
 
             elif parsed.path == "/api/upload":
                 self.send_response(200)
@@ -1097,7 +1132,7 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                     if not dev_info:
                         raise RuntimeError("Teclado K86 não encontrado. Conecte o cabo USB.")
 
-                    hid_node, _, _, _ = dev_info
+                    hid_node = dev_info[0]
                     dev = HidrawDevice(hid_node)
                     try:
                         def on_step(pct, text):
@@ -1149,7 +1184,7 @@ def run_cli(args):
     found = find_keyboard_hidraw()
     if not found:
         sys.exit("[!] Teclado K86 não encontrado via cabo USB.")
-    hid_node, vid_pid, prod_name, dev_id = found
+    hid_node, vid_pid, prod_name, dev_id, _ = found
     id_info = f" [ID: {dev_id}]" if dev_id else ""
     print(f"[+] Teclado detectado : {prod_name}{id_info} ({vid_pid}) em {hid_node}")
 

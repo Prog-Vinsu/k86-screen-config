@@ -12,13 +12,19 @@
     <div class="brand">
       <img id="appIcon" src="icon.png" alt="Icon">
       <div>
-        <h1>Attack Shark K86 Configurator</h1>
-        <span>Telinha TFT & Configurações de Hardware</span>
+        <h1>Attack Shark Peripheral Hub</h1>
+        <span>Configurador K86 &amp; Mouse X11</span>
       </div>
     </div>
-    <div id="deviceBadge" class="status-badge">
-      <div class="status-dot"></div>
-      <span id="deviceText">Buscando teclado...</span>
+    <div style="display: flex; gap: 8px; align-items: center;">
+      <div id="deviceBadge" class="status-badge" title="Status do Teclado K86">
+        <div class="status-dot"></div>
+        <span id="deviceText">Buscando teclado...</span>
+      </div>
+      <div id="mouseBadge" class="status-badge" title="Status do Mouse X11">
+        <div class="status-dot"></div>
+        <span id="mouseText">Mouse X11...</span>
+      </div>
     </div>
   </header>
 
@@ -40,6 +46,10 @@
       <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 9h6v6H9zM9 1v2M15 1v2M9 21v2M15 21v2M1 9h2M1 15h2M21 9h2M21 15h2"/></svg>
       <span>Dispositivo</span>
     </button>
+    <button class="tab-btn" data-tab="tab-mouse">
+      <svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 7v4"/></svg>
+      <span>Mouse X11</span>
+    </button>
   </nav>
 
   <!-- Global Alert Box -->
@@ -47,6 +57,19 @@
 
   <!-- TAB 1: SCREEN & GIF UPLOAD -->
   <div id="tab-screen" class="tab-pane active">
+    <!-- Connection Warning Banner (Shown when keyboard is not on cable) -->
+    <div id="kbCableWarning" class="panel" style="display: none; background: rgba(245, 158, 11, 0.08); border-color: rgba(245, 158, 11, 0.35); padding: 12px 16px;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <svg viewBox="0 0 24 24" style="width: 22px; height: 22px; stroke: var(--accent); fill: none; flex-shrink: 0;"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <div style="flex: 1;">
+          <div style="font-weight: 600; font-size: 0.88rem; color: var(--accent);">Conexão via Cabo USB Necessária para a Telinha</div>
+          <div style="font-size: 0.8rem; color: var(--muted); margin-top: 2px;">
+            A gravação de GIFs e imagens no display TFT requer o cabo USB conectado. O modo sem fio (2.4G ou Bluetooth) não expõe os canais de gravação da memória flash da tela.
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div id="dropzone" class="dropzone">
       <svg viewBox="0 0 24 24">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
@@ -55,7 +78,6 @@
       <div class="dropzone-subtext">ou clique para selecionar (.gif, .png, .jpg, .webp)</div>
       <input type="file" id="fileInput" accept="image/gif,image/png,image/jpeg,image/webp" style="display: none;">
     </div>
-
     <!-- Preview Panel -->
     <div id="previewPanel" class="panel" style="display: none;">
       <div class="preview-container">
@@ -490,33 +512,171 @@
 
   <!-- TAB 4: DEVICE INFO & MAINTENANCE -->
   <div id="tab-info" class="tab-pane">
-    <div class="panel">
-      <h2 class="panel-title">
-        <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 9h6v6H9zM9 1v2M15 1v2M9 21v2M15 21v2M1 9h2M1 15h2M21 9h2M21 15h2"/></svg>
-        Informações de Hardware
-      </h2>
-      <table class="info-table">
-        <tbody>
-          <tr><td>Modelo:</td><td id="infoModel">Attack Shark K86</td></tr>
-          <tr><td>Revisão / Device ID:</td><td id="infoDevId">--</td></tr>
-          <tr><td>Identificador USB:</td><td id="infoUsbId">3151:4015</td></tr>
-          <tr><td>Chipset / Família:</td><td id="infoFamily">ROYUAN YC500 / YC3121</td></tr>
-          <tr><td>Interface de Comunicação:</td><td id="infoNode">/dev/hidrawX</td></tr>
-          <tr><td>Resolução da Telinha:</td><td>240 × 135 pixels (RGB565)</td></tr>
-        </tbody>
-      </table>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+      <!-- Seção Teclado K86 -->
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 class="panel-title">
+            <svg viewBox="0 0 24 24"><rect width="20" height="13" x="2" y="5" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M9 13h6"/></svg>
+            Teclado K86
+          </h2>
+          <span id="infoKbStatusBadge" class="badge" style="color: var(--success); border-color: var(--success-border); background: var(--success-subtle);">Conectado</span>
+        </div>
+        <table class="info-table">
+          <tbody>
+            <tr><td>Modelo:</td><td id="infoModel">Attack Shark K86</td></tr>
+            <tr><td>Revisão / ID:</td><td id="infoDevId" class="font-mono">--</td></tr>
+            <tr><td>ID USB (VID:PID):</td><td id="infoUsbId" class="font-mono">3151:4015</td></tr>
+            <tr><td>Chipset / Família:</td><td id="infoFamily">ROYUAN YC500 / YC3121</td></tr>
+            <tr><td>Nó de Comunicação:</td><td id="infoNode" class="font-mono">/dev/hidrawX</td></tr>
+            <tr><td>Display TFT:</td><td>240 × 135 px (RGB565)</td></tr>
+            <tr><td>Alimentação / Bateria:</td><td id="infoKbBattery">Alimentado via USB (5V)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Seção Mouse X11 -->
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 class="panel-title">
+            <svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 7v4"/></svg>
+            Mouse X11
+          </h2>
+          <span id="infoMouseStatusBadge" class="badge" style="color: var(--telemetry); border-color: var(--telemetry); background: var(--telemetry-subtle);">Conectado (2.4G)</span>
+        </div>
+        <table class="info-table">
+          <tbody>
+            <tr><td>Modelo:</td><td id="infoMouseModel">Attack Shark X11</td></tr>
+            <tr><td>Conexão:</td><td id="infoMouseConn">Sem Fio (Receptor 2.4G)</td></tr>
+            <tr><td>ID USB (VID:PID):</td><td id="infoMouseUsbId" class="font-mono">1d57:fa60</td></tr>
+            <tr><td>Sensor Óptico:</td><td>PixArt PAW3311 (22.000 DPI)</td></tr>
+            <tr><td>Nó de Comunicação:</td><td id="infoMouseNode" class="font-mono">/dev/hidrawX (Interface 02)</td></tr>
+            <tr><td>Bateria Atual:</td><td id="infoMouseBattery" class="font-mono" style="color: var(--telemetry); font-weight: 700;">--%</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="panel" style="border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.03);">
       <h2 class="panel-title" style="color: var(--error-text);">
         <svg viewBox="0 0 24 24" style="stroke: var(--error-text);"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Restauração aos Padrões de Fábrica
+        Restauração aos Padrões de Fábrica (Teclado)
       </h2>
-      <p class="panel-desc">Restaura todas as configurações, tempos de suspensão, debounce e iluminação para os padrões originais de fábrica do teclado.</p>
+      <p class="panel-desc">Restaura todas as configurações, tempos de suspensão, debounce e iluminação para os padrões originais de fábrica do teclado K86.</p>
       <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
         <button id="btnFactoryReset" class="btn btn-danger">
           <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          Restaurar Padrões de Fábrica
+          Restaurar Padrões de Fábrica do Teclado
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 5: MOUSE ATTACK SHARK X11 -->
+  <div id="tab-mouse" class="tab-pane">
+    <div class="panel">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+          <h2 class="panel-title">
+            <svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 7v4"/></svg>
+            Attack Shark X11 - Telemetria &amp; Status
+          </h2>
+          <p class="panel-desc">Sensor PixArt PAW3311 (50 a 22.000 DPI), Tri-Mode e base magnética RGB.</p>
+        </div>
+        <div id="mouseBatteryCard" style="display: flex; align-items: center; gap: 8px; background: rgba(0, 210, 255, 0.08); border: 1px solid rgba(0, 210, 255, 0.3); padding: 6px 14px; border-radius: var(--radius);">
+          <svg viewBox="0 0 24 24" style="width: 18px; height: 18px; stroke: var(--telemetry); fill: none;"><rect x="2" y="7" width="16" height="10" rx="2"/><line x1="20" y1="11" x2="20" y2="13"/></svg>
+          <span id="mouseBatteryVal" style="font-weight: 700; color: var(--telemetry); font-family: 'JetBrains Mono', monospace;">--%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Polling Rate, LOD & Debounce -->
+    <div class="panel">
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Desempenho &amp; Polling Rate
+      </h2>
+      <p class="panel-desc">Taxa de comunicação com o receptor 2.4G e calibração de sensores ópticos.</p>
+      
+      <div class="controls-grid" style="border: none; padding-top: 0;">
+        <div class="control-group">
+          <label class="control-label" for="selMousePolling">Polling Rate (Taxa de Varredura):</label>
+          <select id="selMousePolling">
+            <option value="1000" selected>1000 Hz (1 ms - Recomendado para Jogos)</option>
+            <option value="500">500 Hz (2 ms)</option>
+            <option value="250">250 Hz (4 ms)</option>
+            <option value="125">125 Hz (8 ms - Máxima economia de bateria)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="sliderMouseDebounce">
+            Tempo de Debounce / Key Response:
+            <span id="mouseDebounceVal">4 ms</span>
+          </label>
+          <input type="range" id="sliderMouseDebounce" min="1" max="20" value="4">
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="selMouseLod">Lift-Off Distance (LOD):</label>
+          <select id="selMouseLod">
+            <option value="0" selected>Baixa (1 mm - Precisão competitiva)</option>
+            <option value="1">Alta (2 mm)</option>
+          </select>
+        </div>
+
+        <div class="control-group">
+          <label class="control-label" for="selMouseSleep">Tempo para Suspensão (Sleep):</label>
+          <select id="selMouseSleep">
+            <option value="1">1 minuto</option>
+            <option value="3">3 minutos</option>
+            <option value="5" selected>5 minutos (Padrão)</option>
+            <option value="10">10 minutos</option>
+            <option value="15">15 minutos</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="mouse-switch-grid">
+        <div class="mouse-switch-item">
+          <div>
+            <div class="title">Angle Snapping</div>
+            <div class="desc">Correção angular de linha reta</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="switchMouseAngle">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="mouse-switch-item">
+          <div>
+            <div class="title">Ripple Control</div>
+            <div class="desc">Suavização de ruído em alto DPI</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="switchMouseRipple">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+    <!-- DPI Stages Configurator -->
+    <div class="panel">
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/></svg>
+        Estágios de DPI (Sensor PAW3311)
+      </h2>
+      <p class="panel-desc">Ajuste os valores de cada nível de sensibilidade de 50 a 22.000 DPI.</p>
+
+      <div id="mouseDpiStagesContainer">
+        <!-- Stages dynamically or statically filled -->
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; margin-top: 20px; gap: 10px;">
+        <button id="btnApplyMouseSettings" class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2zM17 21v-8H7v8M7 3v5h8"/></svg>
+          Salvar Configurações no Mouse
         </button>
       </div>
     </div>

@@ -3,7 +3,8 @@ set -e
 
 APP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 ICON_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/256x256/apps"
-UDEV_RULE_FILE="/etc/udev/rules.d/70-attack-shark-k86.rules"
+UDEV_RULE_FILE="/etc/udev/rules.d/70-attack-shark-devices.rules"
+OLD_UDEV_RULE_FILE="/etc/udev/rules.d/70-attack-shark-k86.rules"
 DESKTOP_FILE="$APP_DIR/attack-shark-k86.desktop"
 OLD_DESKTOP_FILE="$APP_DIR/k86-screen-uploader.desktop"
 
@@ -32,17 +33,17 @@ if command -v update-desktop-database >/dev/null 2>&1; then
 fi
 
 # 2. Pergunta sobre remoção da regra udev
-if [ -f "$UDEV_RULE_FILE" ]; then
+if [ -f "$UDEV_RULE_FILE" ] || [ -f "$OLD_UDEV_RULE_FILE" ]; then
     echo ""
-    read -r -p "Deseja remover a regra udev ($UDEV_RULE_FILE)? [s/N] " response
+    read -r -p "Deseja remover as regras udev do Attack Shark? [s/N] " response
     case "$response" in
         [sS][iI][mM]|[sS]|[yY][eE][sS]|[yY])
             if command -v sudo >/dev/null 2>&1; then
-                sudo rm -f "$UDEV_RULE_FILE"
+                sudo rm -f "$UDEV_RULE_FILE" "$OLD_UDEV_RULE_FILE"
                 sudo udevadm control --reload-rules && sudo udevadm trigger
-                echo "[✓] Regra udev removida."
+                echo "[✓] Regras udev removidas."
             else
-                echo "[!] Execute com permissão root para remover: rm $UDEV_RULE_FILE"
+                echo "[!] Execute com permissão root para remover: rm $UDEV_RULE_FILE $OLD_UDEV_RULE_FILE"
             fi
             ;;
         *)

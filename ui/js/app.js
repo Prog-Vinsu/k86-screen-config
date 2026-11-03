@@ -12,7 +12,21 @@
     const alertBox = document.getElementById('alertBox');
     const deviceBadge = document.getElementById('deviceBadge');
     const deviceText = document.getElementById('deviceText');
+    const mouseBadge = document.getElementById('mouseBadge');
+    const mouseText = document.getElementById('mouseText');
+    const mouseBatteryVal = document.getElementById('mouseBatteryVal');
 
+    // Mouse State
+    let mouseState = {
+      polling_rate: 1000,
+      debounce_ms: 4,
+      lod: 0,
+      sleep_minutes: 5,
+      angle_snap: false,
+      ripple_control: false,
+      active_stage: 2,
+      dpi_stages: [800, 1600, 2400, 3200, 5000, 22000]
+    };
     // Tab Navigation
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -25,6 +39,9 @@
         // Auto-fetch settings when entering device or lighting tabs
         if (btn.dataset.tab === 'tab-device' || btn.dataset.tab === 'tab-lighting' || btn.dataset.tab === 'tab-info') {
           fetchKeyboardSettings();
+        }
+        if (btn.dataset.tab === 'tab-mouse') {
+          fetchMouseSettings();
         }
         if (btn.dataset.tab === 'tab-lighting') {
           startKeyboardPreview();
@@ -73,18 +90,49 @@
 
     // Callbacks from Python
     window.onDeviceStatus = function(d) {
+      const isCable = d.connected && d.conn_type !== 'wireless';
+      const kbWarning = document.getElementById('kbCableWarning');
+      const kbBattery = document.getElementById('infoKbBattery');
+      const kbBadge = document.getElementById('infoKbStatusBadge');
+
       if (d.connected) {
         deviceBadge.className = 'status-badge connected';
-        deviceText.textContent = `Teclado: ${d.name} (${d.node})`;
+        deviceText.textContent = isCable ? `Teclado: ${d.name}` : `Teclado: ${d.name} (Sem Fio 2.4G)`;
         document.getElementById('infoDevId').textContent = d.dev_id || '1168';
         document.getElementById('infoNode').textContent = d.node;
         document.getElementById('infoUsbId').textContent = d.vid_pid;
+        
+        if (kbBadge) {
+          kbBadge.textContent = isCable ? 'Conectado (Cabo USB)' : 'Conectado (Sem Fio 2.4G)';
+          kbBadge.style.color = 'var(--success)';
+          kbBadge.style.borderColor = 'var(--success-border)';
+          kbBadge.style.background = 'var(--success-subtle)';
+        }
+        if (kbBattery) {
+          kbBattery.textContent = isCable ? 'Alimentado via USB (5V • Carregando)' : 'Modo Bateria (2.4G)';
+        }
+        if (kbWarning) {
+          kbWarning.style.display = isCable ? 'none' : 'block';
+        }
       } else {
         deviceBadge.className = 'status-badge error';
         deviceText.textContent = d.conflict 
           ? `Conflito: feche o processo '${d.conflict}'`
           : 'Teclado não detectado (conecte o cabo USB)';
+        if (kbBadge) {
+          kbBadge.textContent = 'Desconectado';
+          kbBadge.style.color = 'var(--error-text)';
+          kbBadge.style.borderColor = 'var(--error-border)';
+          kbBadge.style.background = 'var(--error-subtle)';
+        }
+        if (kbBattery) {
+          kbBattery.textContent = '--';
+        }
+        if (kbWarning) {
+          kbWarning.style.display = 'block';
+        }
       }
+      updateUploadButtonState();
     };
 
     window.onFeedback = function(res) {
@@ -213,7 +261,7 @@
         if (dzText) dzText.textContent = 'Substituir arquivo (.gif, .png, .jpg)';
         if (dzSubtext) dzSubtext.textContent = 'Clique ou solte outro arquivo para trocar a animação';
         previewPanel.style.display = 'flex';
-        btnUpload.disabled = false;
+        updateUploadButtonState();
         sendToPython('inspect', { image: currentFileBase64 });
       };
       reader.readAsDataURL(file);
@@ -228,6 +276,27 @@
         delayVal.textContent = data.suggested_delay;
       }
     };
+
+    function updateUploadButtonState() {
+      if (!btnUpload) return;
+      const hasFile = !!currentFileBase64;
+      const isKbConnected = deviceBadge?.classList.contains('connected');
+      const isKbCable = !deviceText?.textContent.includes('Sem Fio');
+
+      if (!hasFile) {
+        btnUpload.disabled = true;
+        btnUpload.title = 'Selecione uma imagem ou animação primeiro';
+      } else if (!isKbConnected) {
+        btnUpload.disabled = true;
+        btnUpload.title = 'Conecte o teclado via cabo USB para gravar';
+      } else if (!isKbCable) {
+        btnUpload.disabled = true;
+        btnUpload.title = 'Gravação na telinha requer o cabo USB conectado';
+      } else {
+        btnUpload.disabled = isUploading;
+        btnUpload.title = 'Pronto para gravar no display TFT';
+      }
+    }
 
     window.onUploadProgress = function(msg) {
       if (msg.status === 'progress') {
@@ -606,9 +675,174 @@
       }
     });
 
+    // ==============================================================================
+    // TAB 5: ATTACK SHARK X11 MOUSE LOGIC
+    // ==============================================================================
+    const mouseDpiStagesContainer = document.getElementById('mouseDpiStagesContainer');
+    const sliderMouseDebounce = document.getElementById('sliderMouseDebounce');
+    const mouseDebounceVal = document.getElementById('mouseDebounceVal');
+
+    sliderMouseDebounce?.addEventListener('input', () => {
+      mouseDebounceVal.textContent = sliderMouseDebounce.value + ' ms';
+    });
+
+    const DPI_STAGE_COLORS = [
+      '#ff3b30', // 1: Red
+      '#34c759', // 2: Green
+      '#007aff', // 3: Blue
+      '#ffcc00', // 4: Yellow
+      '#00d2ff', // 5: Cyan
+      '#af52de'  // 6: Purple
+    ];
+
+    function renderDpiStages(stages, activeStage) {
+      if (!mouseDpiStagesContainer) return;
+      mouseDpiStagesContainer.innerHTML = '';
+
+      stages.forEach((dpi, idx) => {
+        const stageNum = idx + 1;
+        const isCurrent = stageNum === activeStage;
+        const color = DPI_STAGE_COLORS[idx % DPI_STAGE_COLORS.length];
+        
+        const card = document.createElement('div');
+        card.className = `mouse-stage-card ${isCurrent ? 'active' : ''}`;
+
+        card.innerHTML = `
+          <div class="mouse-stage-header">
+            <div class="mouse-stage-title">
+              <span class="mouse-stage-color-dot" style="background: ${color}; color: ${color};"></span>
+              <span>Estágio ${stageNum} ${isCurrent ? '• Ativo' : ''}</span>
+            </div>
+            <input type="radio" name="activeDpiStage" value="${stageNum}" ${isCurrent ? 'checked' : ''} class="mouse-stage-radio">
+          </div>
+          <div class="mouse-stage-input-row">
+            <input type="number" min="50" max="22000" step="50" value="${dpi}" data-stage-index="${idx}">
+            <span class="unit">DPI</span>
+          </div>
+        `;
+
+        const radio = card.querySelector('input[type="radio"]');
+        const numInput = card.querySelector('input[type="number"]');
+
+        card.addEventListener('click', (e) => {
+          if (e.target !== numInput) {
+            radio.checked = true;
+            mouseState.active_stage = stageNum;
+            renderDpiStages(mouseState.dpi_stages, mouseState.active_stage);
+          }
+        });
+
+        numInput.addEventListener('change', (e) => {
+          const val = Math.max(50, Math.min(22000, parseInt(e.target.value, 10) || 800));
+          e.target.value = val;
+          mouseState.dpi_stages[idx] = val;
+        });
+
+        mouseDpiStagesContainer.appendChild(card);
+      });
+    }
+
+    function fetchMouseSettings() {
+      sendToPython('mouse_status');
+    }
+
+    window.onMouseStatus = function(d) {
+      if (!mouseBadge || !mouseText) return;
+      const mBadge = document.getElementById('infoMouseStatusBadge');
+      const mConn = document.getElementById('infoMouseConn');
+      const mNode = document.getElementById('infoMouseNode');
+      const mBatt = document.getElementById('infoMouseBattery');
+
+      if (d.connected) {
+        mouseBadge.className = 'status-badge connected';
+        mouseText.textContent = d.is_wireless ? 'Mouse X11 (2.4G)' : 'Mouse X11 (Cabo)';
+        if (mouseBatteryVal) {
+          mouseBatteryVal.textContent = d.battery !== null ? `${d.battery}%` : 'Carregando...';
+        }
+        if (mBadge) {
+          mBadge.textContent = d.is_wireless ? 'Conectado (2.4G)' : 'Conectado (Cabo)';
+          mBadge.style.color = 'var(--telemetry)';
+          mBadge.style.borderColor = 'var(--telemetry)';
+          mBadge.style.background = 'var(--telemetry-subtle)';
+        }
+        if (mConn) mConn.textContent = d.is_wireless ? 'Sem Fio (Receptor 2.4G)' : 'Com Fio (Cabo USB-C)';
+        if (mNode && d.node) mNode.textContent = `${d.node} (Interface 02)`;
+        if (mBatt) mBatt.textContent = d.battery !== null ? `${d.battery}%` : 'Carregando...';
+      } else {
+        mouseBadge.className = 'status-badge';
+        mouseText.textContent = 'Mouse X11 Desconectado';
+        if (mouseBatteryVal) {
+          mouseBatteryVal.textContent = '--%';
+        }
+        if (mBadge) {
+          mBadge.textContent = 'Desconectado';
+          mBadge.style.color = 'var(--muted)';
+          mBadge.style.borderColor = 'var(--border)';
+          mBadge.style.background = 'rgba(148, 163, 184, 0.08)';
+        }
+        if (mBatt) mBatt.textContent = '--%';
+      }
+
+      // Populate state
+      if (d.polling_rate) {
+        document.getElementById('selMousePolling').value = d.polling_rate;
+        mouseState.polling_rate = d.polling_rate;
+      }
+      if (d.debounce_ms) {
+        sliderMouseDebounce.value = d.debounce_ms;
+        mouseDebounceVal.textContent = d.debounce_ms + ' ms';
+        mouseState.debounce_ms = d.debounce_ms;
+      }
+      if (d.lod !== undefined) {
+        document.getElementById('selMouseLod').value = d.lod;
+        mouseState.lod = d.lod;
+      }
+      if (d.sleep_minutes !== undefined) {
+        document.getElementById('selMouseSleep').value = d.sleep_minutes;
+        mouseState.sleep_minutes = d.sleep_minutes;
+      }
+      if (d.angle_snap !== undefined) {
+        document.getElementById('switchMouseAngle').checked = !!d.angle_snap;
+        mouseState.angle_snap = !!d.angle_snap;
+      }
+      if (d.ripple_control !== undefined) {
+        document.getElementById('switchMouseRipple').checked = !!d.ripple_control;
+        mouseState.ripple_control = !!d.ripple_control;
+      }
+      if (d.dpi_stages && d.dpi_stages.length > 0) {
+        mouseState.dpi_stages = d.dpi_stages;
+      }
+      if (d.active_stage) {
+        mouseState.active_stage = d.active_stage;
+      }
+      renderDpiStages(mouseState.dpi_stages, mouseState.active_stage);
+    };
+
+    window.onMouseFeedback = function(res) {
+      showAlert(res.message, res.success ? 'success' : 'error');
+    };
+
+    document.getElementById('btnApplyMouseSettings')?.addEventListener('click', () => {
+      const payload = {
+        polling_rate: parseInt(document.getElementById('selMousePolling').value, 10),
+        debounce_ms: parseInt(sliderMouseDebounce.value, 10),
+        lod: parseInt(document.getElementById('selMouseLod').value, 10),
+        sleep_minutes: parseFloat(document.getElementById('selMouseSleep').value),
+        angle_snap: document.getElementById('switchMouseAngle').checked,
+        ripple_control: document.getElementById('switchMouseRipple').checked,
+        active_stage: mouseState.active_stage,
+        dpi_stages: mouseState.dpi_stages
+      };
+
+      sendToPython('mouse_apply_settings', { settings: payload });
+    });
+
+    renderDpiStages(mouseState.dpi_stages, mouseState.active_stage);
+
     // Device check interval
     function checkDevice() {
       sendToPython('status');
+      sendToPython('mouse_status');
     }
 
     checkDevice();
