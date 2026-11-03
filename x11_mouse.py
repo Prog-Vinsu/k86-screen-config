@@ -146,11 +146,9 @@ class X11MouseDevice:
         """
         if self.fd is None:
             raise RuntimeError("Dispositivo não está aberto.")
-        # ioctl expects report data with report ID in data[0]
         length = len(data)
         ioc_cmd = _ioc(0x06, length)
         fcntl.ioctl(self.fd, ioc_cmd, data)
-
     def read_input_report(self, timeout_s: float = 0.5) -> Optional[bytes]:
         """
         Reads pending raw input report (e.g. Report 0x03 for battery telemetry).
@@ -187,12 +185,16 @@ class X11MouseDevice:
         angle_snap: bool = False,
         ripple_control: bool = False,
         lod: int = 0, # 0 = 1mm, 1 = 2mm
-        colors: Optional[List[List[int]]] = None
+        colors: Optional[List[List[int]]] = None,
+        is_wireless: bool = True
     ) -> bool:
         """
-        Sends Report 0x04 (52 bytes) with complete sensor configuration and 16-bit additive checksum.
+        Sends Report 0x04.
+        Declared length on 2.4G dongle descriptor is 55 data bytes + 1 report ID = 56 bytes.
+        On wired path it is 51 data bytes + 1 report ID = 52 bytes.
         """
-        packet = bytearray(52)
+        packet_len = 56 if is_wireless else 52
+        packet = bytearray(packet_len)
         packet[0] = REPORT_DPI_CONFIG
         packet[1] = 0x38  # protocol field (56)
         packet[2] = 0x01  # fixed
@@ -378,7 +380,7 @@ class X11MouseManager:
                 return False
             self.device = X11MouseDevice(info["node"])
             self.dev_info = info
-
+        is_wireless = self.dev_info.get("is_wireless", True) if self.dev_info else True
         success = True
 
         # Polling rate
@@ -388,6 +390,7 @@ class X11MouseManager:
                 self.polling_rate = new_hz
             else:
                 success = False
+            time.sleep(0.3)  # Intervalo de segurança para o firmware sem fio do dongle
 
         # DPI config
         dpi_changed = any(k in settings for k in ["dpi_stages", "active_stage", "angle_snap", "ripple_control", "lod"])
@@ -398,7 +401,7 @@ class X11MouseManager:
             rip = bool(settings.get("ripple_control", self.ripple_control))
             lod_val = int(settings.get("lod", self.lod))
 
-            if self.device.set_dpi_config(stages, act_stage, ang, rip, lod_val):
+            if self.device.set_dpi_config(stages, act_stage, ang, rip, lod_val, is_wireless=is_wireless):
                 self.dpi_stages = stages
                 self.active_stage = act_stage
                 self.angle_snap = ang
@@ -406,6 +409,7 @@ class X11MouseManager:
                 self.lod = lod_val
             else:
                 success = False
+            time.sleep(0.3)
 
         # Lighting & Debounce
         light_changed = any(k in settings for k in ["light_mode", "light_color", "debounce_ms", "sleep_minutes"])
