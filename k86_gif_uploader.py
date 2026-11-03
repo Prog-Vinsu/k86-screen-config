@@ -842,13 +842,11 @@ def launch_native_gui(dry_run: bool = False):
 
     ucm.connect("script-message-received::pybridge", on_ipc_message)
     win.connect("destroy", Gtk.main_quit)
-
-    ui_path = os.path.join(SCRIPT_DIR, "app_ui.html")
+    ui_path = os.path.join(SCRIPT_DIR, "ui", "index.html")
     if os.path.exists(ui_path):
         webview.load_uri(f"file://{os.path.abspath(ui_path)}")
     else:
-        webview.load_html("<h1>Erro: app_ui.html não encontrado</h1>", "file:///")
-
+        webview.load_html("<h1>Erro: ui/index.html não encontrado</h1>", "file:///")
     win.show_all()
     Gtk.main()
 
@@ -882,7 +880,7 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                 if not self.verify_token():
                     self.send_error(403, "Token de autenticação inválido.")
                     return
-                ui_path = os.path.join(SCRIPT_DIR, "app_ui.html")
+                ui_path = os.path.join(SCRIPT_DIR, "ui", "index.html")
                 with open(ui_path, "r", encoding="utf-8") as f:
                     content = f.read()
                 injected = content.replace("</head>", f"<script>window.__AUTH_TOKEN__ = '{token}';</script></head>")
@@ -893,20 +891,32 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                 self.end_headers()
                 self.wfile.write(body)
 
-            elif path == "/icon.png":
-                icon_path = os.path.join(SCRIPT_DIR, "icon.png")
-                if os.path.exists(icon_path):
-                    with open(icon_path, "rb") as f:
-                        b = f.read()
-                    self.send_response(200)
-                    self.send_header("Content-Type", "image/png")
-                    self.send_header("Content-Length", str(len(b)))
-                    self.end_headers()
-                    self.wfile.write(b)
-                else:
-                    self.send_error(404)
             else:
-                self.send_error(404)
+                # Servir assets estáticos (CSS, JS, imagens)
+                rel_path = path.lstrip("/")
+                # Tenta em ui/ primeiro, depois no diretório raiz
+                target_file = os.path.abspath(os.path.join(SCRIPT_DIR, "ui", rel_path))
+                if not target_file.startswith(os.path.abspath(SCRIPT_DIR)):
+                    self.send_error(403)
+                    return
+                if not os.path.exists(target_file):
+                    target_file = os.path.abspath(os.path.join(SCRIPT_DIR, rel_path))
+                if not target_file.startswith(os.path.abspath(SCRIPT_DIR)) or not os.path.exists(target_file) or os.path.isdir(target_file):
+                    self.send_error(404)
+                    return
+
+                import mimetypes
+                ctype, _ = mimetypes.guess_type(target_file)
+                if not ctype:
+                    ctype = "application/octet-stream"
+
+                with open(target_file, "rb") as f:
+                    b = f.read()
+                self.send_response(200)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Content-Length", str(len(b)))
+                self.end_headers()
+                self.wfile.write(b)
 
         def do_POST(self):
             if not self.verify_token():

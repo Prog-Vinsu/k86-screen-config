@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Attack Shark K86 - Configurator & Screen Uploader</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <img id="appIcon" src="icon.png" alt="Icon">
+      <div>
+        <h1>Attack Shark K86 Configurator</h1>
+        <span>Telinha TFT & Configurações de Hardware</span>
+      </div>
+    </div>
+    <div id="deviceBadge" class="status-badge">
+      <div class="status-dot"></div>
+      <span id="deviceText">Buscando teclado...</span>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="tabs-nav">
+    <button class="tab-btn active" data-tab="tab-screen">
+      <svg viewBox="0 0 24 24"><rect width="20" height="15" x="2" y="3" rx="2"/><path d="M12 18v3M8 21h8"/></svg>
+      <span>Tela &amp; GIFs</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-device">
+      <svg viewBox="0 0 24 24"><rect width="20" height="13" x="2" y="5" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M9 13h6"/></svg>
+      <span>Teclado &amp; Opções</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-lighting">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      <span>Iluminação RGB</span>
+    </button>
+    <button class="tab-btn" data-tab="tab-info">
+      <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 9h6v6H9zM9 1v2M15 1v2M9 21v2M15 21v2M1 9h2M1 15h2M21 9h2M21 15h2"/></svg>
+      <span>Dispositivo</span>
+    </button>
+  </nav>
+
+  <!-- Global Alert Box -->
+  <div id="alertBox" class="alert"></div>
+
+  <!-- TAB 1: SCREEN & GIF UPLOAD -->
+  <div id="tab-screen" class="tab-pane active">
+    <div id="dropzone" class="dropzone">
+      <svg viewBox="0 0 24 24">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+      </svg>
+      <div class="dropzone-text">Arraste e solte seu GIF ou imagem aqui</div>
+      <div class="dropzone-subtext">ou clique para selecionar (.gif, .png, .jpg, .webp)</div>
+      <input type="file" id="fileInput" accept="image/gif,image/png,image/jpeg,image/webp" style="display: none;">
+    </div>
+
+    <!-- Preview Panel -->
+    <div id="previewPanel" class="panel" style="display: none;">
+      <div class="preview-container">
+        <div class="screen-bezel">
+          <img id="previewImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='135'%3E%3Crect width='100%25' height='100%25' fill='%2305070a'/%3E%3C/svg%3E" alt="Preview TFT">
+        </div>
+        <div class="file-details">
+          <div id="fileName" class="file-name">animacao.gif</div>
+          <div id="fileDims" style="color: var(--muted); font-size: 0.85rem;">240 × 135 px (Escala Nativa)</div>
+          <div class="badge-row">
+            <div id="badgeFrames" class="badge">-- quadros</div>
+            <div id="badgeDuration" class="badge">-- ms/quadro</div>
+            <div id="badgeSize" class="badge">-- KB</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controls -->
+      <div class="controls-grid">
+        <div class="control-group">
+          <div class="control-label">
+            Velocidade / Delay:
+            <span id="delayVal">40</span>
+          </div>
+          <input type="range" id="delaySlider" min="5" max="150" value="40">
+          <span class="control-hint">Menor = mais rápido (recomendado: 25 a 60 ms)</span>
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            Limite de Quadros:
+            <span id="framesVal">60</span>
+          </div>
+          <input type="range" id="framesSlider" min="10" max="90" value="60">
+          <span class="control-hint">Amostragem inteligente para caber na memória flash</span>
+        </div>
+
+        <div class="control-group" style="grid-column: span 2;">
+          <div class="control-label">Enquadramento do Display:</div>
+          <div class="radio-group">
+            <div class="radio-btn active" data-fit="crop">Preencher (Crop)</div>
+            <div class="radio-btn" data-fit="contain">Conter (Barras Pretas)</div>
+            <div class="radio-btn" data-fit="stretch">Esticar</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Upload Action -->
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <button id="btnUpload" class="btn btn-primary" style="width: 100%; padding: 12px;" disabled>
+        <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Gravar na Telinha do Teclado
+      </button>
+      <div id="progressContainer" class="progress-bar-container">
+        <div id="progressBar" class="progress-bar"></div>
+      </div>
+      <div id="progressInfo" class="progress-info" style="display: none;">
+        <span id="progressMsg">Iniciando gravação...</span>
+        <span id="progressPct">0%</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: KEYBOARD & HARDWARE SETTINGS -->
+  <div id="tab-device" class="tab-pane">
+    <!-- Clock Sync -->
+    <div class="panel">
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Relógio da Tela TFT
+      </h2>
+      <p class="panel-desc">Sincroniza o relógio interno exibido na telinha do K86 diretamente com o horário do seu computador.</p>
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="btnSyncClock" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+          Sincronizar com Horário do PC
+        </button>
+      </div>
+    </div>
+
+    <!-- Debounce -->
+    <div class="panel">
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Debounce de Teclas (Tempo de Resposta)
+      </h2>
+      <p class="panel-desc">Valores mais baixos diminuem a latência das teclas; aumente caso sinta repetições involuntárias (duplo clique).</p>
+      <div class="control-group">
+        <div class="control-label">
+          Tempo de Debounce:
+          <span id="debounceVal">3 ms</span>
+        </div>
+        <input type="range" id="debounceSlider" min="1" max="10" value="3">
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="btnSaveDebounce" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Salvar Debounce
+        </button>
+      </div>
+    </div>
+
+    <!-- Hardware Switches -->
+    <div class="panel">
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><path d="M12 20v-6M6 20V10M18 20V4"/><circle cx="12" cy="10" r="2"/><circle cx="6" cy="14" r="2"/><circle cx="18" cy="8" r="2"/></svg>
+        Interruptores de Hardware
+      </h2>
+      
+      <div class="switch-row">
+        <div class="switch-info">
+          <h3>Bloquear Tecla Windows (Win Lock)</h3>
+          <p>Desativa a tecla Windows durante jogos para evitar saídas acidentais.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="switchWinLock">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="switch-row">
+        <div class="switch-info">
+          <h3>Inverter WASD com as Setas</h3>
+          <p>Troca a função das teclas W/A/S/D pelas teclas de setas direcionais.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="switchWasdSwap">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="switch-row">
+        <div class="switch-info">
+          <h3>Desligar Iluminação das Teclas (Backlight)</h3>
+          <p>Apaga todos os LEDs sob as teclas do teclado.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="switchLedOff">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div class="switch-row">
+        <div class="switch-info">
+          <h3>Desligar LEDs Laterais (Side Light)</h3>
+          <p>Desativa as faixas luminosas nas laterais do K86.</p>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" id="switchSideLedOff">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; padding-top: 6px;">
+        <button id="btnSaveOptions" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Aplicar Opções
+        </button>
+      </div>
+    </div>
+
+    <!-- Sleep Timers -->
+    <div class="panel">
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+        Temporizadores de Suspensão (Economia de Bateria)
+      </h2>
+      <div class="controls-grid" style="border: none; padding-top: 0;">
+        <div class="control-group">
+          <label class="control-label">Hibernação 2.4 GHz:</label>
+          <select id="selSleepRf">
+            <option value="60">1 minuto (60s)</option>
+            <option value="120">2 minutos (120s)</option>
+            <option value="180">3 minutos (180s - Padrão)</option>
+            <option value="300">5 minutos (300s)</option>
+            <option value="600">10 minutos (600s)</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Hibernação Bluetooth:</label>
+          <select id="selSleepBt">
+            <option value="60">1 minuto (60s)</option>
+            <option value="120">2 minutos (120s)</option>
+            <option value="180">3 minutos (180s - Padrão)</option>
+            <option value="300">5 minutos (300s)</option>
+            <option value="600">10 minutos (600s)</option>
+          </select>
+        </div>
+        <div class="control-group" style="grid-column: span 2;">
+          <label class="control-label">Suspensão Profunda (Deep Sleep):</label>
+          <select id="selSleepDeep">
+            <option value="600">10 minutos (600s)</option>
+            <option value="1200">20 minutos (1200s - Padrão)</option>
+            <option value="1800">30 minutos (1800s)</option>
+            <option value="3600">1 hora (3600s)</option>
+          </select>
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end;">
+        <button id="btnSaveSleep" class="btn btn-secondary">
+          <svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          Salvar Temporizadores
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: RGB LIGHTING -->
+  <div id="tab-lighting" class="tab-pane">
+    <!-- Interactive Live Keyboard & Side LED Preview Panel -->
+    <div class="panel keyboard-preview-panel">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">
+        <div>
+          <h2 class="panel-title">
+            <svg viewBox="0 0 24 24"><rect width="20" height="13" x="2" y="5" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M9 13h6"/></svg>
+            Simulação de Iluminação em Tempo Real
+          </h2>
+          <p class="panel-desc">Efeito, cor e movimento do backlight e das barras laterais. As mudanças refletem instantaneamente.</p>
+        </div>
+        <div class="preview-pill">
+          <span class="preview-pill-dot"></span>
+          <span id="previewStatusText">Backlight Ativo</span>
+        </div>
+      </div>
+
+      <div class="keyboard-stage-wrapper">
+        <canvas id="keyboardCanvas" width="680" height="232" title="Prévia dinâmica do Attack Shark K86 — Clique nas teclas para simular digitação"></canvas>
+      </div>
+
+      <div class="preview-indicators-row">
+        <div class="preview-indicator-item">
+          <span class="preview-indicator-label">Teclas:</span>
+          <span id="previewKeyModeLabel" class="preview-indicator-val">Estático</span>
+        </div>
+        <div class="preview-indicator-item">
+          <span class="preview-indicator-label">Laterais:</span>
+          <span id="previewSideModeLabel" class="preview-indicator-val">Estático</span>
+        </div>
+        <div class="preview-indicator-item">
+          <span class="preview-indicator-label">Velocidade:</span>
+          <span id="previewSpeedLabel" class="preview-indicator-val">2</span>
+        </div>
+        <div class="preview-indicator-item" style="margin-left: auto;">
+          <span class="preview-indicator-hint">Clique nas teclas para simular digitação</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+        Efeitos e Iluminação das Teclas
+      </h2>
+
+      <div class="control-group">
+        <label class="control-label">Modo / Efeito de Iluminação:</label>
+        <select id="selLedMode">
+          <option value="1">Estático (Static)</option>
+          <option value="2">Respiração (Breathing)</option>
+          <option value="3">Ciclo de Espectro (Spectrum Cycle)</option>
+          <option value="4">Onda (Wave)</option>
+          <option value="5">Ondulação ao Digitar (Ripple)</option>
+          <option value="6">Pontos Estelares (Star Dots)</option>
+          <option value="7">Fluxo (Flow)</option>
+          <option value="8">Sombra de Tecla (Key Shadow)</option>
+          <option value="9">Camadas (Layers)</option>
+          <option value="10">Onda Senoidal (Sine Wave)</option>
+          <option value="11">Mola (Spring)</option>
+          <option value="12">Neon</option>
+          <option value="14">Radiante (Radiant)</option>
+          <option value="15">Loop</option>
+          <option value="16">Grade de Cores (Color Grid)</option>
+          <option value="17">Queda de Neve (Snowfall)</option>
+          <option value="18">Meteoro (Meteor)</option>
+          <option value="19">Neve Suave (Silent Snow)</option>
+        </select>
+      </div>
+
+      <div class="control-group" style="padding-top: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label class="control-label" style="margin: 0;">Modo de Cor:</label>
+          <div class="radio-group" style="max-width: 220px;">
+            <div class="radio-btn active" id="btnColorCustom" data-rainbow="0">Cor Fixa</div>
+            <div class="radio-btn" id="btnColorRainbow" data-rainbow="1">Arco-íris</div>
+          </div>
+        </div>
+
+        <!-- Custom Color Section for Keys -->
+        <div id="groupCustomColor" class="color-section">
+          <div class="color-hub-row">
+            <div class="color-chip-wrapper" title="Clique para abrir o seletor nativo do sistema">
+              <div id="colorChip" class="color-chip"></div>
+              <input type="color" id="nativeColorMain" class="native-color-picker" value="#00ffff" title="Seletor de cor">
+            </div>
+            <div class="color-meta">
+              <div class="color-hex-input-group">
+                <input type="text" id="inputColorHex" class="color-hex-input" value="#00FFFF" maxlength="7" spellcheck="false" title="Código HEX">
+                <span id="labelColorRgb" class="color-rgb-label">RGB(0, 255, 255)</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="hue-slider-group">
+            <div class="hue-slider-label">
+              <span>Matiz Espectral (Hue):</span>
+              <span id="hueValMain" style="font-family: monospace; font-size: 0.82rem; color: var(--accent);">180°</span>
+            </div>
+            <input type="range" id="hueSliderMain" class="hue-slider" min="0" max="360" value="180">
+          </div>
+
+          <div class="color-presets-wrapper">
+            <span class="color-presets-title">Cores Rápidas:</span>
+            <div class="color-presets-grid" id="colorPresets"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls-grid" style="border: none; padding-top: 6px;">
+        <div class="control-group">
+          <div class="control-label">
+            Brilho dos LEDs:
+            <span id="labelBrightness">4 (Máx)</span>
+          </div>
+          <input type="range" id="sliderBrightness" min="0" max="4" value="4">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            Velocidade do Efeito:
+            <span id="labelSpeed">2</span>
+          </div>
+          <input type="range" id="sliderSpeed" min="0" max="4" value="2">
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; padding-top: 10px;">
+        <button id="btnApplyLed" class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2"/></svg>
+          Aplicar Iluminação
+        </button>
+      </div>
+    </div>
+
+    <!-- Side LED Lighting Panel -->
+    <div class="panel">
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M17 3v18"/></svg>
+        Iluminação das Barras Laterais (Side LEDs)
+      </h2>
+      <p class="panel-desc">Controle dedicado das fitas de LED nas bordas esquerda e direita do Attack Shark K86.</p>
+
+      <div class="control-group">
+        <label class="control-label">Modo dos LEDs Laterais:</label>
+        <select id="selSledMode">
+          <option value="0">Desligado (Off)</option>
+          <option value="1" selected>Estático (Static)</option>
+          <option value="2">Respiração (Breathing)</option>
+          <option value="3">Neon (Arco-íris Dinâmico)</option>
+          <option value="4">Onda (Wave)</option>
+          <option value="5">Cobra (Snake)</option>
+        </select>
+      </div>
+
+      <div class="control-group" style="padding-top: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <label class="control-label" style="margin: 0;">Modo de Cor Lateral:</label>
+          <div class="radio-group" style="max-width: 220px;">
+            <div class="radio-btn active" id="btnSledColorCustom">Cor Fixa</div>
+            <div class="radio-btn" id="btnSledColorRainbow">Arco-íris</div>
+          </div>
+        </div>
+
+        <!-- Custom Color Section for Side LEDs (Identical Architecture) -->
+        <div id="groupSledCustomColor" class="color-section">
+          <div class="color-hub-row">
+            <div class="color-chip-wrapper" title="Clique para abrir o seletor nativo do sistema">
+              <div id="sledColorChip" class="color-chip"></div>
+              <input type="color" id="nativeColorSled" class="native-color-picker" value="#00ffff" title="Seletor de cor lateral">
+            </div>
+            <div class="color-meta">
+              <div class="color-hex-input-group">
+                <input type="text" id="inputSledColorHex" class="color-hex-input" value="#00FFFF" maxlength="7" spellcheck="false" title="Código HEX">
+                <span id="labelSledColorRgb" class="color-rgb-label">RGB(0, 255, 255)</span>
+              </div>
+            </div>
+            <button id="btnCopyMainColor" class="btn btn-secondary" style="margin-left: auto; padding: 6px 12px; font-size: 0.82rem;">
+              <svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              Copiar Cor das Teclas
+            </button>
+          </div>
+
+          <div class="hue-slider-group">
+            <div class="hue-slider-label">
+              <span>Matiz Espectral (Hue):</span>
+              <span id="hueValSled" style="font-family: monospace; font-size: 0.82rem; color: var(--accent);">180°</span>
+            </div>
+            <input type="range" id="hueSliderSled" class="hue-slider" min="0" max="360" value="180">
+          </div>
+
+          <div class="color-presets-wrapper">
+            <span class="color-presets-title">Cores Rápidas:</span>
+            <div class="color-presets-grid" id="sledColorPresets"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls-grid" style="border: none; padding-top: 6px;">
+        <div class="control-group">
+          <div class="control-label">
+            Brilho Lateral:
+            <span id="labelSledBrightness">4 (Máx)</span>
+          </div>
+          <input type="range" id="sliderSledBrightness" min="0" max="4" value="4">
+        </div>
+
+        <div class="control-group">
+          <div class="control-label">
+            Velocidade Lateral:
+            <span id="labelSledSpeed">2</span>
+          </div>
+          <input type="range" id="sliderSledSpeed" min="0" max="4" value="2">
+        </div>
+      </div>
+      <div style="display: flex; justify-content: flex-end; padding-top: 10px;">
+        <button id="btnApplySled" class="btn btn-primary">
+          <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18M17 3v18"/></svg>
+          Aplicar LEDs Laterais
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: DEVICE INFO & MAINTENANCE -->
+  <div id="tab-info" class="tab-pane">
+    <div class="panel">
+      <h2 class="panel-title">
+        <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 9h6v6H9zM9 1v2M15 1v2M9 21v2M15 21v2M1 9h2M1 15h2M21 9h2M21 15h2"/></svg>
+        Informações de Hardware
+      </h2>
+      <table class="info-table">
+        <tbody>
+          <tr><td>Modelo:</td><td id="infoModel">Attack Shark K86</td></tr>
+          <tr><td>Revisão / Device ID:</td><td id="infoDevId">--</td></tr>
+          <tr><td>Identificador USB:</td><td id="infoUsbId">3151:4015</td></tr>
+          <tr><td>Chipset / Família:</td><td id="infoFamily">ROYUAN YC500 / YC3121</td></tr>
+          <tr><td>Interface de Comunicação:</td><td id="infoNode">/dev/hidrawX</td></tr>
+          <tr><td>Resolução da Telinha:</td><td>240 × 135 pixels (RGB565)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="panel" style="border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.03);">
+      <h2 class="panel-title" style="color: var(--error-text);">
+        <svg viewBox="0 0 24 24" style="stroke: var(--error-text);"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Restauração aos Padrões de Fábrica
+      </h2>
+      <p class="panel-desc">Restaura todas as configurações, tempos de suspensão, debounce e iluminação para os padrões originais de fábrica do teclado.</p>
+      <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
+        <button id="btnFactoryReset" class="btn btn-danger">
+          <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Restaurar Padrões de Fábrica
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <span>Resolução nativa da tela TFT: 240×135 px (16:9)</span>
+    <div class="links-group">
+      <a href="#" onclick="openExternal('https://br.pinterest.com/mayssarf/gifs-for-attack-shark-k86'); return false;">Coleção Pinterest</a>
+      <a href="#" onclick="openExternal('https://github.com/marcel-pietron/k86-screen-frames'); return false;">GIFs no GitHub</a>
+      <a href="#" onclick="openExternal('https://giphy.com/search/pixel-art-loop'); return false;">Giphy Pixel Art</a>
+    </div>
+  </footer>
+
+
+  <script src="js/keyboard_preview.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
