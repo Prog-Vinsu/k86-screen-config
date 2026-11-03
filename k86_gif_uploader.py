@@ -660,7 +660,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     settings = read_keyboard_settings(dev, dev_id or 1168)
@@ -673,7 +673,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, _ = dev_info
+                node = dev_info[0]
                 dev = HidrawDevice(node)
                 try:
                     sync_clock(dev)
@@ -688,7 +688,7 @@ def launch_native_gui(dry_run: bool = False):
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
                 val = int(data.get("value", 3))
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     write_debounce(dev, dev_id or 1168, val)
@@ -701,7 +701,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     write_options(dev, dev_id or 1168, data)
@@ -720,7 +720,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     rf = int(data.get("rf_sleep", 180))
@@ -737,7 +737,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     mode = int(data.get("mode", 4))
@@ -754,7 +754,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     mode = int(data.get("mode", 1))
@@ -773,7 +773,7 @@ def launch_native_gui(dry_run: bool = False):
                 if not dev_info:
                     eval_js(f"window.onFeedback({json.dumps({'success': False, 'message': 'Teclado não conectado'})});")
                     return
-                node, _, _, dev_id = dev_info
+                node, vid_pid, name, dev_id, conn_type = dev_info
                 dev = HidrawDevice(node)
                 try:
                     write_factory_reset(dev, dev_id or 1168)
@@ -825,7 +825,7 @@ def launch_native_gui(dry_run: bool = False):
                         if not dev_info:
                             raise RuntimeError("Teclado K86 não encontrado. Conecte o cabo USB.")
 
-                        hid_node, _, _, _ = dev_info
+                        hid_node = dev_info[0]
                         dev = HidrawDevice(hid_node)
                         try:
                             def on_step(pct, text):
@@ -970,7 +970,7 @@ def launch_fallback_browser_gui(dry_run: bool = False):
             elif parsed.path == "/api/get_settings":
                 dev_info = find_keyboard_hidraw()
                 if dev_info:
-                    node, _, _, dev_id = dev_info
+                    node, vid_pid, name, dev_id, conn_type = dev_info
                     dev = HidrawDevice(node)
                     try:
                         s = read_keyboard_settings(dev, dev_id or 1168)
@@ -1132,7 +1132,7 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                     if not dev_info:
                         raise RuntimeError("Teclado K86 não encontrado. Conecte o cabo USB.")
 
-                    hid_node, _, _, _ = dev_info
+                    hid_node = dev_info[0]
                     dev = HidrawDevice(hid_node)
                     try:
                         def on_step(pct, text):
