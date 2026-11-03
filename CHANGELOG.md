@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-11-03
+
+### Added
+- **Painel de Tela Atual Salva no Teclado (Aba Tela & GIFs):**
+  - Exibição visual da mídia atualmente gravada na memória flash SPI do teclado Attack Shark K86.
+  - Pré-visualização animada em moldura de alta precisão 240×135 (TFT RGB565).
+  - Painel com telemetria e metadados detalhados: nome do arquivo, data e hora da gravação, quantidade de quadros, delay (ms e FPS), modo de enquadramento (Crop, Contain, Stretch), uso estimado da memória flash e versão do firmware do display.
+  - Consulta direta ao hardware via opcode `0xAD` para leitura da versão da controladora da tela TFT (`FW TFT v1.06`).
+  - Modo Standby tático para teclados com padrões de fábrica ou sem mídia personalizada gravada nesta máquina.
+  - Botão de ação rápida para esquecer/limpar o registro da tela gravada e retornar ao modo standby.
+  - Persistência sincronizada em `~/.config/attack-shark-k86/current_screen.json`, sincronizando gravações realizadas tanto pela interface gráfica (GUI) quanto pela linha de comando (CLI).
+  - Exibição da versão do firmware TFT e do status da tela salva na tabela da aba de Dispositivo (`#tab-info`).
+
 ## [1.2.0] - 2026-11-03
 
 ### Added

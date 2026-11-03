@@ -31,7 +31,7 @@ try:
 except ImportError:
     sys.exit("Erro: Pillow não está instalado. Instale com: pip install pillow ou sudo apt install python3-pil")
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 # Constantes do display do K86
 SCREEN_W = 240
@@ -48,6 +48,9 @@ SUPPORTED_VID_PIDS = [
 ]
 
 VERIFIED_K86_DEVICE_IDS = [1168, 2730]
+CONFIG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "attack-shark-k86")
+CURRENT_SCREEN_FILE = os.path.join(CONFIG_DIR, "current_screen.json")
+
 
 def _ioc(nr: int, ln: int) -> int:
     return (3 << 30) | (ln << 16) | (ord("H") << 8) | nr
@@ -120,6 +123,15 @@ class HidrawDevice:
                 return None
             return int.from_bytes(reply[1:5], "little")
         return None
+    def read_display_firmware_version(self) -> Optional[str]:
+        p = bytearray(64)
+        p[0] = 0xAD
+        checksum7(p)
+        reply = self.roundtrip(bytes(p), timeout_s=0.2)
+        if reply and reply[0] == 0xAD and len(reply) >= 3:
+            return f"{reply[2]}.{reply[1]:02d}"
+        return None
+
 
 
 def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int], str]]:
@@ -172,6 +184,119 @@ def find_keyboard_hidraw() -> Optional[Tuple[str, str, str, Optional[int], str]]
                 continue
 
     return None
+def query_keyboard_display_fw(node: str) -> Optional[str]:
+    try:
+        temp_dev = HidrawDevice(node)
+        fw = temp_dev.read_display_firmware_version()
+        temp_dev.close()
+        return fw
+    except Exception:
+        return None
+
+
+def load_current_screen_info(dev_display_fw: Optional[str] = None) -> dict:
+    data = None
+    if os.path.exists(CURRENT_SCREEN_FILE):
+        try:
+            with open(CURRENT_SCREEN_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            print("Erro ao carregar current_screen.json:", e)
+
+    if not data or not isinstance(data, dict):
+        data = {
+            "has_saved": False,
+            "file_name": None,
+            "width": SCREEN_W,
+            "height": SCREEN_H,
+            "color_format": "RGB565 (16 bits)",
+            "max_recommended_frames": 60,
+        }
+
+    if dev_display_fw:
+        data["display_fw"] = dev_display_fw
+
+    return data
+
+
+def save_current_screen_info(
+    file_name: str,
+    pil_frames: List[Image.Image],
+    delay: int,
+    fit_mode: str = "crop",
+    display_fw: Optional[str] = None,
+) -> dict:
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    count = len(pil_frames)
+    buf = io.BytesIO()
+    if count > 1:
+        pil_frames[0].save(
+            buf,
+            format="GIF",
+            save_all=True,
+            append_images=pil_frames[1:],
+            duration=delay,
+            loop=0,
+            optimize=True,
+        )
+        mime = "image/gif"
+    else:
+        pil_frames[0].save(buf, format="PNG", optimize=True)
+        mime = "image/png"
+
+    b64_preview = f"data:{mime};base64,{base64.b64encode(buf.getvalue()).decode('ascii')}"
+
+    now = datetime.datetime.now()
+    now_iso = now.isoformat()
+    now_display = now.strftime("%d/%m/%Y às %H:%M")
+
+    fit_labels = {
+        "crop": "Preencher (Crop)",
+        "contain": "Conter (Barras)",
+        "stretch": "Esticar",
+    }
+
+    fps = round(1000.0 / max(1, delay), 1)
+    raw_bytes = count * FRAME_RAW_LEN
+    raw_mb = f"{raw_bytes / (1024 * 1024):.2f} MB"
+
+    data = {
+        "has_saved": True,
+        "file_name": os.path.basename(file_name) if file_name else "animacao.gif",
+        "uploaded_at": now_iso,
+        "uploaded_at_display": now_display,
+        "frames_count": count,
+        "delay": delay,
+        "fps": fps,
+        "fit_mode": fit_mode,
+        "fit_mode_label": fit_labels.get(fit_mode, fit_mode),
+        "width": SCREEN_W,
+        "height": SCREEN_H,
+        "color_format": "RGB565 (16 bits)",
+        "raw_size_bytes": raw_bytes,
+        "raw_size_mb": raw_mb,
+        "display_fw": display_fw or "1.06",
+        "preview_data_url": b64_preview,
+    }
+
+    try:
+        with open(CURRENT_SCREEN_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        print("Erro ao salvar current_screen.json:", e)
+
+    return data
+
+
+def clear_current_screen_info() -> bool:
+    try:
+        if os.path.exists(CURRENT_SCREEN_FILE):
+            os.remove(CURRENT_SCREEN_FILE)
+            return True
+    except Exception as e:
+        print("Erro ao remover current_screen.json:", e)
+    return False
+
 
 
 # ==============================================================================
@@ -639,8 +764,11 @@ def launch_native_gui(dry_run: bool = False):
             if action == "status":
                 conflict = check_conflicting_tools()
                 dev_info = find_keyboard_hidraw()
+                display_fw = None
                 if dev_info:
                     node, vid_pid, name, dev_id, conn_type = dev_info
+                    if conn_type == "cable":
+                        display_fw = query_keyboard_display_fw(node)
                     id_label = f" [ID: {dev_id}]" if dev_id else ""
                     res = {
                         "connected": True,
@@ -650,10 +778,28 @@ def launch_native_gui(dry_run: bool = False):
                         "dev_id": dev_id or 1168,
                         "conflict": conflict,
                         "conn_type": conn_type,
+                        "display_fw": display_fw,
                     }
                 else:
-                    res = {"connected": False, "conflict": conflict}
+                    res = {"connected": False, "conflict": conflict, "display_fw": None}
                 eval_js(f"window.onDeviceStatus({json.dumps(res)});")
+
+            elif action == "get_current_screen":
+                dev_info = find_keyboard_hidraw()
+                display_fw = None
+                if dev_info and dev_info[4] == "cable":
+                    display_fw = query_keyboard_display_fw(dev_info[0])
+                info = load_current_screen_info(dev_display_fw=display_fw)
+                eval_js(f"window.onCurrentScreenLoaded && window.onCurrentScreenLoaded({json.dumps(info)});")
+
+            elif action == "clear_current_screen":
+                clear_current_screen_info()
+                dev_info = find_keyboard_hidraw()
+                display_fw = None
+                if dev_info and dev_info[4] == "cable":
+                    display_fw = query_keyboard_display_fw(dev_info[0])
+                info = load_current_screen_info(dev_display_fw=display_fw)
+                eval_js(f"window.onCurrentScreenLoaded && window.onCurrentScreenLoaded({json.dumps(info)});")
 
             elif action == "get_settings":
                 dev_info = find_keyboard_hidraw()
@@ -804,6 +950,7 @@ def launch_native_gui(dry_run: bool = False):
 
             elif action == "upload":
                 b64_data = data.get("image", "").split(",", 1)[-1]
+                file_name = data.get("file_name", "animacao.gif")
                 delay = int(data.get("delay", 40))
                 max_frames = int(data.get("max_frames", 60))
                 fit_mode = data.get("fit", "crop")
@@ -818,7 +965,7 @@ def launch_native_gui(dry_run: bool = False):
                         im = Image.open(io.BytesIO(img_bytes))
 
                         send_prog(6, "Formatando quadros em RGB565 (240x135)...")
-                        raw_frames, _, _ = process_frames_from_image(im, max_frames=max_frames, fit_mode=fit_mode)
+                        raw_frames, resized_images, _ = process_frames_from_image(im, max_frames=max_frames, fit_mode=fit_mode)
 
                         send_prog(10, "Detectando teclado Attack Shark K86...")
                         dev_info = find_keyboard_hidraw()
@@ -835,6 +982,15 @@ def launch_native_gui(dry_run: bool = False):
                             execute_upload(
                                 dev, raw_frames, delay=delay, mode="vendor", progress_cb=on_step, dry_run=dry_run
                             )
+                            disp_fw = dev.read_display_firmware_version()
+                            saved_info = save_current_screen_info(
+                                file_name=file_name,
+                                pil_frames=resized_images,
+                                delay=delay,
+                                fit_mode=fit_mode,
+                                display_fw=disp_fw,
+                            )
+                            eval_js(f"window.onCurrentScreenLoaded && window.onCurrentScreenLoaded({json.dumps(saved_info)});")
                             send_prog(100, "Concluído!", status="done")
                         finally:
                             dev.close()
@@ -960,12 +1116,32 @@ def launch_fallback_browser_gui(dry_run: bool = False):
             if parsed.path == "/api/status":
                 dev_info = find_keyboard_hidraw()
                 conflict = check_conflicting_tools()
+                display_fw = None
                 if dev_info:
                     node, vid_pid, name, dev_id, conn_type = dev_info
+                    if conn_type == "cable":
+                        display_fw = query_keyboard_display_fw(node)
                     id_label = f" [ID: {dev_id}]" if dev_id else ""
-                    send_json({"connected": True, "node": node, "vid_pid": vid_pid, "name": f"{name}{id_label}", "dev_id": dev_id or 1168, "conflict": conflict, "conn_type": conn_type})
+                    send_json({"connected": True, "node": node, "vid_pid": vid_pid, "name": f"{name}{id_label}", "dev_id": dev_id or 1168, "conflict": conflict, "conn_type": conn_type, "display_fw": display_fw})
                 else:
-                    send_json({"connected": False, "conflict": conflict})
+                    send_json({"connected": False, "conflict": conflict, "display_fw": None})
+
+            elif parsed.path == "/api/get_current_screen":
+                dev_info = find_keyboard_hidraw()
+                display_fw = None
+                if dev_info and dev_info[4] == "cable":
+                    display_fw = query_keyboard_display_fw(dev_info[0])
+                info = load_current_screen_info(dev_display_fw=display_fw)
+                send_json(info)
+
+            elif parsed.path == "/api/clear_current_screen":
+                clear_current_screen_info()
+                dev_info = find_keyboard_hidraw()
+                display_fw = None
+                if dev_info and dev_info[4] == "cable":
+                    display_fw = query_keyboard_display_fw(dev_info[0])
+                info = load_current_screen_info(dev_display_fw=display_fw)
+                send_json(info)
 
             elif parsed.path == "/api/get_settings":
                 dev_info = find_keyboard_hidraw()
@@ -1140,6 +1316,14 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                             sse_event("progress", scaled, text)
 
                         execute_upload(dev, raw_frames, delay=delay, mode="vendor", progress_cb=on_step, dry_run=dry_run)
+                        disp_fw = dev.read_display_firmware_version()
+                        save_current_screen_info(
+                            file_name=payload.get("file_name", "animacao.gif"),
+                            pil_frames=resized_images,
+                            delay=delay,
+                            fit_mode=fit_mode,
+                            display_fw=disp_fw,
+                        )
                         sse_event("done", 100, "Concluído!")
                     finally:
                         dev.close()
@@ -1216,6 +1400,18 @@ def run_cli(args):
             sys.stdout.flush()
 
         execute_upload(dev, raw_frames, delay=delay, mode=args.mode, progress_cb=cli_progress, dry_run=args.dry_run)
+        if not args.dry_run:
+            try:
+                disp_fw = dev.read_display_firmware_version()
+                save_current_screen_info(
+                    file_name=args.file,
+                    pil_frames=pil_frames,
+                    delay=delay,
+                    fit_mode=args.fit,
+                    display_fw=disp_fw,
+                )
+            except Exception:
+                pass
         print("\n\n[✓] Sucesso! Operação concluída.")
     finally:
         dev.close()

@@ -14,11 +14,13 @@
 * **Janela Desktop Nativa (GTK 3 + WebKit2GTK):** Aplicativo gráfico executado no ambiente de trabalho nativo com suporte a **Arrastar & Soltar (Drag & Drop)**.
 * **Comunicação Direta por IPC (Sem Servidor HTTP):** Elimina portas HTTP locais e riscos de CORS; a troca de dados ocorre via ponte de memória de processo isolada.
 * **Verificação de Segurança de Hardware:** Consulta o identificador do aparelho via comando de leitura `0x8F` antes de enviar qualquer pacote, garantindo que apenas teclados Attack Shark K86 verificados recebam gravações.
-* **Telinha TFT & Envio de GIFs:**
-  * Pré-visualização com moldura 240×135 em tempo real.
-  * Slider de velocidade/delay entre quadros.
-  * Amostragem inteligente de quadros para respeitar a memória flash.
-  * Modos de corte: Preencher cortando sobras (*Crop* - padrão), Conter (*Contain*) ou Esticar (*Stretch*).
+* **Telinha TFT & Gerenciamento de GIFs:**
+  * **Tela Atual Salva no Teclado:** Cartão informativo que exibe a animação gravada na memória flash do K86, incluindo pré-visualização animada na moldura tática, nome do arquivo, data e hora da gravação, quantidade de quadros, delay/velocidade (ms e FPS), modo de enquadramento, tamanho ocupado na flash e versão do firmware do display TFT lida via hardware (`0xAD`).
+  * **Pré-visualização 240×135 em tempo real** com proporção nativa fiel ao display.
+  * **Slider de velocidade/delay entre quadros** (faixa de 5 a 150 ms).
+  * **Amostragem inteligente de quadros** para respeitar a capacidade da memória flash SPI.
+  * **Modos de corte:** Preencher cortando sobras (*Crop* - padrão), Conter com barras pretas (*Contain*) ou Esticar (*Stretch*).
+  * **Modo Standby e Limpeza de Histórico:** Visor inicial para teclados no padrão de fábrica com botão para redefinir o registro local.
 * **Configurações de Teclado (Compatível com sharkfin):**
   * **Sincronização de Relógio:** Sincroniza o relógio da telinha com o horário do PC em um clique.
   * **Debounce de Teclas:** Ajuste de latência de 1ms a 10ms.
