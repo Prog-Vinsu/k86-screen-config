@@ -31,7 +31,7 @@ try:
 except ImportError:
     sys.exit("Erro: Pillow não está instalado. Instale com: pip install pillow ou sudo apt install python3-pil")
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 # Constantes do display do K86
 SCREEN_W = 240

@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-11-03
+
+### Added
+- **Unified Peripheral Hub:** Full support for configuring the **Attack Shark X11** wireless/wired gaming mouse alongside the K86 keyboard.
+- **Attack Shark X11 Driver (`x11_mouse.py`):**
+  - Dynamic hardware detection for both 2.4 GHz wireless receiver (`1D57:FA60`) and wired connection (`1D57:FA55`).
+  - Real-time autonomous battery telemetry parsing from `Input Report 0x03` (`03 55 40 01 <pct>`).
+  - PixArt PAW3311 sensor configuration: 6 independent DPI stages (50 to 22,000 DPI), active stage selection, Angle Snapping toggle, Ripple Control smoothing, and Lift-Off Distance (LOD: 1mm / 2mm).
+  - Polling rate adjustment (125 Hz, 250 Hz, 500 Hz, 1000 Hz via `Report 0x06`).
+  - Switch debounce / Key response time (1ms - 20ms) and sleep timer configuration via `Report 0x05`.
+  - Wireless 2.4G pacing and dynamic report sizing (56 bytes on dongle, 52 bytes on wired cable).
+- **Dedicated 'Mouse X11' UI Tab:**
+  - Real-time battery indicator badge with custom SVG telemetry icon.
+  - Balanced 6-column DPI stage grid with LED color dots corresponding to physical hardware indicators.
+  - Direct click-to-activate stage selection and live value editing.
+  - Tactical toggle switches for Angle Snapping and Ripple Control.
+- **Reorganized 'Dispositivo' (Device Info) Tab:**
+  - Symmetrical two-column dashboard cleanly separating Keyboard K86 and Mouse X11 hardware information (VID:PID, device node, firmware/family, battery, connection mode).
+  - Dedicated and labeled Keyboard Factory Reset action.
+- **Modular UI Architecture (`ui/`):**
+  - Split monolithic `app_ui.html` into structured files: `ui/index.html`, `ui/css/style.css`, `ui/js/app.js`, and `ui/js/keyboard_preview.js`.
+- **Updated udev Rules (`70-attack-shark-devices.rules`):**
+  - Added non-root user permissions (`TAG+="uaccess"`) for Attack Shark X11 dongle and wired USB nodes.
+
 ## [1.1.0] - 2026-11-02
 
 ### Added
