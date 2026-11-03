@@ -21,3 +21,10 @@ env/
 *.swp
 *~
 .DS_Store
+
+# Impeccable
+.impeccable/
+
+.github/agents/
+.github/hooks/
+.github/skills/

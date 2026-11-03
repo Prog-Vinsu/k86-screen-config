@@ -15,11 +15,26 @@
 * **Native Desktop Window (GTK 3 + WebKit2GTK):** Clean desktop application running in your native desktop environment with full **Drag & Drop** support.
 * **Direct IPC (Zero HTTP Server):** Completely eliminates local HTTP ports or CORS vulnerabilities; communication stays within an isolated process memory bridge.
 * **Hardware Safety Verification:** Queries device identity via read-only command `0x8F` before transmitting any data packets, ensuring only verified Attack Shark K86 controllers receive screen writes.
-* **Real-time Live Preview:** Renders how the GIF or image looks inside the 240×135 bezel frame.
-* **Speed / Delay Adjustment:** Interactive slider to fine-tune frame delay.
-* **Smart Frame Sampling:** Uniformly downsamples long GIFs to prevent keyboard flash memory overflow while preserving playback speed.
-* **Aspect Ratio Modes:** Crop to fill (default), Contain (letterbox with black borders), or Stretch.
-* **Dual Operation (GUI + CLI):** Launch with no arguments for the visual window, or pass a file path directly for instant command-line uploads.
+* **Animated GIF & Screen Upload:**
+  * Real-time 240×135 bezel preview.
+  * Frame delay & playback speed slider.
+  * Smart frame downsampling to fit keyboard flash memory safely.
+  * Fit modes: Crop to fill (default), Contain (letterbox), or Stretch.
+* **Hardware Settings (sharkfin-compatible):**
+  * **OLED/TFT Clock Sync:** Synchronize the keyboard screen's onboard clock with the computer time in one click.
+  * **Debounce Adjustment:** 1ms to 10ms key debounce response time.
+  * **Hardware Toggles:** Win Lock, WASD / Arrow key swap, Backlight disable, Side LED disable.
+  * **Battery Sleep Timers:** Independent 2.4 GHz and Bluetooth sleep and deep sleep timeouts.
+* **Main Backlight RGB Control:**
+  * 18 backlight animation modes (Static, Breathing, Wave, Ripple, Meteor, etc.).
+  * Interactive HSV Color Wheel + 14 quick color presets or dynamic Rainbow mode.
+  * Brightness (0-4) and Effect speed (0-4) sliders.
+* **Side Strip RGB Control (SLEDPARAM):**
+  * Dedicated control over left and right edge light bars.
+  * 6 side lighting modes: Off, Static, Breathing, Neon, Wave, and Snake.
+  * Dedicated brightness, speed, and color synchronization with the main backlight.
+* **Factory Reset:** Send onboard reset command to restore factory defaults.
+* **Dual Operation (GUI + CLI):** Launch without arguments for the visual window, or pass a file path directly for instant command-line uploads.
 * **Dry-Run Mode:** Test image conversion and hardware communication without writing to flash (`--dry-run`).
 
 ---

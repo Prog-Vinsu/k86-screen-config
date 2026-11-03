@@ -15,10 +15,25 @@
 * **Janela Desktop Nativa (GTK 3 + WebKit2GTK):** Aplicativo gráfico executado no ambiente de trabalho nativo com suporte a **Arrastar & Soltar (Drag & Drop)**.
 * **Comunicação Direta por IPC (Sem Servidor HTTP):** Elimina portas HTTP locais e riscos de CORS; a troca de dados ocorre via ponte de memória de processo isolada.
 * **Verificação de Segurança de Hardware:** Consulta o identificador do aparelho via comando de leitura `0x8F` antes de enviar qualquer pacote, garantindo que apenas teclados Attack Shark K86 verificados recebam gravações.
-* **Pré-visualização em Tempo Real:** Renderiza como o GIF ou imagem ficará na moldura 240×135 antes do envio.
-* **Ajuste de Velocidade / Delay:** Slider interativo para ajuste do tempo por quadro.
-* **Amostragem Inteligente de Quadros:** Faz amostragem uniforme de GIFs longos para evitar sobrecarga na memória flash do teclado.
-* **Modos de Enquadramento:** Preencher cortando sobras (*Crop* - padrão), Conter com barras pretas (*Contain*) ou Esticar (*Stretch*).
+* **Telinha TFT & Envio de GIFs:**
+  * Pré-visualização com moldura 240×135 em tempo real.
+  * Slider de velocidade/delay entre quadros.
+  * Amostragem inteligente de quadros para respeitar a memória flash.
+  * Modos de corte: Preencher cortando sobras (*Crop* - padrão), Conter (*Contain*) ou Esticar (*Stretch*).
+* **Configurações de Teclado (Compatível com sharkfin):**
+  * **Sincronização de Relógio:** Sincroniza o relógio da telinha com o horário do PC em um clique.
+  * **Debounce de Teclas:** Ajuste de latência de 1ms a 10ms.
+  * **Interruptores de Hardware:** Win Lock, inversão WASD/Setas, desligar LEDs principais, desligar LEDs laterais.
+  * **Temporizadores de Suspensão:** Configuração independente de economia de bateria para 2.4 GHz e Bluetooth.
+* **Controle de Iluminação RGB Principal:**
+  * 18 modos e efeitos de animação (Estático, Respiração, Onda, Ondulação, Meteoro, etc.).
+  * Rodinha de cores HSV interativa + 14 atalhos de cores rápidas ou modo Arco-íris dinâmico.
+  * Controle de brilho (0 a 4) e velocidade da animação (0 a 4).
+* **Iluminação RGB das Barras Laterais (Side LEDs - SLEDPARAM):**
+  * Controle dedicado das faixas de LED nas bordas do K86.
+  * 6 modos laterais: Desligado, Estático, Respiração, Neon, Onda e Cobra.
+  * Ajustes dedicados de velocidade, brilho e sincronização com a cor principal.
+* **Restauração de Fábrica:** Comando para redefinir as configurações internas para o padrão de fábrica.
 * **Modo CLI Integrado:** Execute sem argumentos para a janela gráfica ou passe o caminho do arquivo diretamente pelo terminal.
 * **Modo de Simulação (Dry-Run):** Testa conversão e comunicação com o hardware sem gravar na flash (`--dry-run`).
 
