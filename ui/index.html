@@ -500,33 +500,60 @@
 
   <!-- TAB 4: DEVICE INFO & MAINTENANCE -->
   <div id="tab-info" class="tab-pane">
-    <div class="panel">
-      <h2 class="panel-title">
-        <svg viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 9h6v6H9zM9 1v2M15 1v2M9 21v2M15 21v2M1 9h2M1 15h2M21 9h2M21 15h2"/></svg>
-        Informações de Hardware
-      </h2>
-      <table class="info-table">
-        <tbody>
-          <tr><td>Modelo:</td><td id="infoModel">Attack Shark K86</td></tr>
-          <tr><td>Revisão / Device ID:</td><td id="infoDevId">--</td></tr>
-          <tr><td>Identificador USB:</td><td id="infoUsbId">3151:4015</td></tr>
-          <tr><td>Chipset / Família:</td><td id="infoFamily">ROYUAN YC500 / YC3121</td></tr>
-          <tr><td>Interface de Comunicação:</td><td id="infoNode">/dev/hidrawX</td></tr>
-          <tr><td>Resolução da Telinha:</td><td>240 × 135 pixels (RGB565)</td></tr>
-        </tbody>
-      </table>
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+      <!-- Seção Teclado K86 -->
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 class="panel-title">
+            <svg viewBox="0 0 24 24"><rect width="20" height="13" x="2" y="5" rx="2"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 13h.01M18 13h.01M9 13h6"/></svg>
+            Teclado K86
+          </h2>
+          <span id="infoKbStatusBadge" class="badge" style="color: var(--success); border-color: var(--success-border); background: var(--success-subtle);">Conectado</span>
+        </div>
+        <table class="info-table">
+          <tbody>
+            <tr><td>Modelo:</td><td id="infoModel">Attack Shark K86</td></tr>
+            <tr><td>Revisão / ID:</td><td id="infoDevId" class="font-mono">--</td></tr>
+            <tr><td>ID USB (VID:PID):</td><td id="infoUsbId" class="font-mono">3151:4015</td></tr>
+            <tr><td>Chipset / Família:</td><td id="infoFamily">ROYUAN YC500 / YC3121</td></tr>
+            <tr><td>Nó de Comunicação:</td><td id="infoNode" class="font-mono">/dev/hidrawX</td></tr>
+            <tr><td>Display TFT:</td><td>240 × 135 px (RGB565)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Seção Mouse X11 -->
+      <div class="panel">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h2 class="panel-title">
+            <svg viewBox="0 0 24 24"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 7v4"/></svg>
+            Mouse X11
+          </h2>
+          <span id="infoMouseStatusBadge" class="badge" style="color: var(--telemetry); border-color: var(--telemetry); background: var(--telemetry-subtle);">Conectado (2.4G)</span>
+        </div>
+        <table class="info-table">
+          <tbody>
+            <tr><td>Modelo:</td><td id="infoMouseModel">Attack Shark X11</td></tr>
+            <tr><td>Conexão:</td><td id="infoMouseConn">Sem Fio (Receptor 2.4G)</td></tr>
+            <tr><td>ID USB (VID:PID):</td><td id="infoMouseUsbId" class="font-mono">1d57:fa60</td></tr>
+            <tr><td>Sensor Óptico:</td><td>PixArt PAW3311 (22.000 DPI)</td></tr>
+            <tr><td>Nó de Comunicação:</td><td id="infoMouseNode" class="font-mono">/dev/hidrawX (Interface 02)</td></tr>
+            <tr><td>Bateria Atual:</td><td id="infoMouseBattery" class="font-mono" style="color: var(--telemetry); font-weight: 700;">--%</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="panel" style="border-color: rgba(239, 68, 68, 0.35); background: rgba(239, 68, 68, 0.03);">
       <h2 class="panel-title" style="color: var(--error-text);">
         <svg viewBox="0 0 24 24" style="stroke: var(--error-text);"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-        Restauração aos Padrões de Fábrica
+        Restauração aos Padrões de Fábrica (Teclado)
       </h2>
-      <p class="panel-desc">Restaura todas as configurações, tempos de suspensão, debounce e iluminação para os padrões originais de fábrica do teclado.</p>
+      <p class="panel-desc">Restaura todas as configurações, tempos de suspensão, debounce e iluminação para os padrões originais de fábrica do teclado K86.</p>
       <div style="display: flex; justify-content: flex-end; margin-top: 6px;">
         <button id="btnFactoryReset" class="btn btn-danger">
           <svg viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          Restaurar Padrões de Fábrica
+          Restaurar Padrões de Fábrica do Teclado
         </button>
       </div>
     </div>

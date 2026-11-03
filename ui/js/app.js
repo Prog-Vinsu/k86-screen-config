@@ -96,11 +96,25 @@
         document.getElementById('infoDevId').textContent = d.dev_id || '1168';
         document.getElementById('infoNode').textContent = d.node;
         document.getElementById('infoUsbId').textContent = d.vid_pid;
+        const kbBadge = document.getElementById('infoKbStatusBadge');
+        if (kbBadge) {
+          kbBadge.textContent = 'Conectado';
+          kbBadge.style.color = 'var(--success)';
+          kbBadge.style.borderColor = 'var(--success-border)';
+          kbBadge.style.background = 'var(--success-subtle)';
+        }
       } else {
         deviceBadge.className = 'status-badge error';
         deviceText.textContent = d.conflict 
           ? `Conflito: feche o processo '${d.conflict}'`
           : 'Teclado não detectado (conecte o cabo USB)';
+        const kbBadge = document.getElementById('infoKbStatusBadge');
+        if (kbBadge) {
+          kbBadge.textContent = 'Desconectado';
+          kbBadge.style.color = 'var(--error-text)';
+          kbBadge.style.borderColor = 'var(--error-border)';
+          kbBadge.style.background = 'var(--error-subtle)';
+        }
       }
     };
 
@@ -696,18 +710,39 @@
 
     window.onMouseStatus = function(d) {
       if (!mouseBadge || !mouseText) return;
+      const mBadge = document.getElementById('infoMouseStatusBadge');
+      const mConn = document.getElementById('infoMouseConn');
+      const mNode = document.getElementById('infoMouseNode');
+      const mBatt = document.getElementById('infoMouseBattery');
+
       if (d.connected) {
         mouseBadge.className = 'status-badge connected';
         mouseText.textContent = d.is_wireless ? 'Mouse X11 (2.4G)' : 'Mouse X11 (Cabo)';
         if (mouseBatteryVal) {
           mouseBatteryVal.textContent = d.battery !== null ? `${d.battery}%` : 'Carregando...';
         }
+        if (mBadge) {
+          mBadge.textContent = d.is_wireless ? 'Conectado (2.4G)' : 'Conectado (Cabo)';
+          mBadge.style.color = 'var(--telemetry)';
+          mBadge.style.borderColor = 'var(--telemetry)';
+          mBadge.style.background = 'var(--telemetry-subtle)';
+        }
+        if (mConn) mConn.textContent = d.is_wireless ? 'Sem Fio (Receptor 2.4G)' : 'Com Fio (Cabo USB-C)';
+        if (mNode && d.node) mNode.textContent = `${d.node} (Interface 02)`;
+        if (mBatt) mBatt.textContent = d.battery !== null ? `${d.battery}%` : 'Carregando...';
       } else {
         mouseBadge.className = 'status-badge';
         mouseText.textContent = 'Mouse X11 Desconectado';
         if (mouseBatteryVal) {
           mouseBatteryVal.textContent = '--%';
         }
+        if (mBadge) {
+          mBadge.textContent = 'Desconectado';
+          mBadge.style.color = 'var(--muted)';
+          mBadge.style.borderColor = 'var(--border)';
+          mBadge.style.background = 'rgba(148, 163, 184, 0.08)';
+        }
+        if (mBatt) mBatt.textContent = '--%';
       }
 
       // Populate state
