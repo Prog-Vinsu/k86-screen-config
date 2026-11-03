@@ -36,6 +36,9 @@
         const target = document.getElementById(btn.dataset.tab);
         if (target) target.classList.add('active');
 
+        if (btn.dataset.tab === 'tab-screen') {
+          fetchCurrentScreen();
+        }
         // Auto-fetch settings when entering device or lighting tabs
         if (btn.dataset.tab === 'tab-device' || btn.dataset.tab === 'tab-lighting' || btn.dataset.tab === 'tab-info') {
           fetchKeyboardSettings();
@@ -113,6 +116,12 @@
         }
         if (kbWarning) {
           kbWarning.style.display = isCable ? 'none' : 'block';
+        }
+        if (d.display_fw) {
+          const badgeFw = document.getElementById('badgeCurrentFw');
+          if (badgeFw) badgeFw.textContent = 'FW TFT: v' + d.display_fw;
+          const infoTft = document.getElementById('infoTftDisplay');
+          if (infoTft) infoTft.textContent = '240 × 135 px (RGB565) • FW v' + d.display_fw;
         }
       } else {
         deviceBadge.className = 'status-badge error';
@@ -198,6 +207,103 @@
       sendToPython('get_settings');
     }
 
+    const STANDBY_SCREEN_SVG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 135' width='240' height='135'%3E%3Cdefs%3E%3ClinearGradient id='bgGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23070a0f'/%3E%3Cstop offset='100%25' stop-color='%230d131f'/%3E%3C/linearGradient%3E%3Cpattern id='grid' width='12' height='12' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 12 0 L 0 0 0 12' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='240' height='135' fill='url(%23bgGrad)'/%3E%3Crect width='240' height='135' fill='url(%23grid)'/%3E%3Cline x1='10' y1='20' x2='230' y2='20' stroke='rgba(245,158,11,0.25)' stroke-width='1'/%3E%3Ctext x='14' y='15' fill='%23f59e0b' font-size='9' font-family='monospace' font-weight='bold'%3EATTACK SHARK K86%3C/text%3E%3Ctext x='226' y='15' text-anchor='end' fill='%2310b981' font-size='9' font-family='monospace'%3EUSB 5V [OK]%3C/text%3E%3Ccircle cx='120' cy='62' r='22' stroke='rgba(0,210,255,0.3)' stroke-width='1.5' fill='rgba(0,210,255,0.05)'/%3E%3Cpath d='M120 48 v14 l9 9' stroke='%2300d2ff' stroke-width='2' stroke-linecap='round'/%3E%3Ctext x='120' y='98' text-anchor='middle' fill='%23f1f5f9' font-size='11' font-family='sans-serif' font-weight='600'%3ESTANDBY • AGUARDANDO GIF%3C/text%3E%3Ctext x='120' y='112' text-anchor='middle' fill='%2394a3b8' font-size='9' font-family='monospace'%3E240 × 135 px • RGB565 16-BIT%3C/text%3E%3Cline x1='10' y1='122' x2='230' y2='122' stroke='rgba(255,255,255,0.08)' stroke-width='1'/%3E%3C/svg%3E";
+
+    // Current Screen Elements
+    const currentScreenImg = document.getElementById('currentScreenImg');
+    const currentScreenFileName = document.getElementById('currentScreenFileName');
+    const currentScreenSubtitle = document.getElementById('currentScreenSubtitle');
+    const currentScreenBadgeStatus = document.getElementById('currentScreenBadgeStatus');
+    const badgeCurrentRes = document.getElementById('badgeCurrentRes');
+    const badgeCurrentFrames = document.getElementById('badgeCurrentFrames');
+    const badgeCurrentSpeed = document.getElementById('badgeCurrentSpeed');
+    const badgeCurrentFit = document.getElementById('badgeCurrentFit');
+    const badgeCurrentSize = document.getElementById('badgeCurrentSize');
+    const badgeCurrentFw = document.getElementById('badgeCurrentFw');
+    const currentScreenDateVal = document.getElementById('currentScreenDateVal');
+    const btnForgetScreen = document.getElementById('btnForgetScreen');
+    const infoTftDisplay = document.getElementById('infoTftDisplay');
+    const infoTftCurrentScreen = document.getElementById('infoTftCurrentScreen');
+
+    let currentSelectedFileName = 'animacao.gif';
+
+    function renderCurrentScreen(d) {
+      if (!d) return;
+      if (d.has_saved) {
+        if (currentScreenImg && d.preview_data_url) {
+          currentScreenImg.src = d.preview_data_url;
+          currentScreenImg.style.objectFit = d.fit_mode === 'contain' ? 'contain' : (d.fit_mode === 'stretch' ? 'fill' : 'cover');
+        }
+        if (currentScreenFileName) currentScreenFileName.textContent = d.file_name || 'animacao.gif';
+        if (currentScreenSubtitle) currentScreenSubtitle.textContent = 'Animação ativa gravada na memória flash SPI do teclado.';
+        if (currentScreenBadgeStatus) {
+          currentScreenBadgeStatus.textContent = '✓ Salvo na Flash';
+          currentScreenBadgeStatus.className = 'badge current-status-badge status-saved';
+        }
+        if (badgeCurrentRes) badgeCurrentRes.textContent = `${d.width || 240} × ${d.height || 135} px`;
+        if (badgeCurrentFrames) badgeCurrentFrames.textContent = `${d.frames_count || 1} quadro(s)`;
+        if (badgeCurrentSpeed) badgeCurrentSpeed.textContent = `${d.delay || 40} ms (~${d.fps || 25} FPS)`;
+        if (badgeCurrentFit) badgeCurrentFit.textContent = d.fit_mode_label || d.fit_mode || 'Preencher (Crop)';
+        if (badgeCurrentSize) badgeCurrentSize.textContent = `${d.raw_size_mb || '--'} Flash`;
+        if (badgeCurrentFw) badgeCurrentFw.textContent = `FW TFT: v${d.display_fw || '1.06'}`;
+        if (currentScreenDateVal) currentScreenDateVal.textContent = d.uploaded_at_display || '--';
+        if (btnForgetScreen) btnForgetScreen.style.display = 'inline-flex';
+        if (infoTftCurrentScreen) infoTftCurrentScreen.textContent = `${d.file_name} (${d.frames_count} q • ${d.delay}ms)`;
+      } else {
+        if (currentScreenImg) {
+          currentScreenImg.src = STANDBY_SCREEN_SVG;
+          currentScreenImg.style.objectFit = 'contain';
+        }
+        if (currentScreenFileName) currentScreenFileName.textContent = 'Padrão de Fábrica / Sem Gravação';
+        if (currentScreenSubtitle) currentScreenSubtitle.textContent = 'O display do teclado exibe o tema inicial ou a última mídia gravada na memória flash.';
+        if (currentScreenBadgeStatus) {
+          currentScreenBadgeStatus.textContent = 'Padrão de Fábrica';
+          currentScreenBadgeStatus.className = 'badge current-status-badge status-default';
+        }
+        if (badgeCurrentRes) badgeCurrentRes.textContent = '240 × 135 px';
+        if (badgeCurrentFrames) badgeCurrentFrames.textContent = 'Até 60 quadros recomendados';
+        if (badgeCurrentSpeed) badgeCurrentSpeed.textContent = '20 - 60 ms comum';
+        if (badgeCurrentFit) badgeCurrentFit.textContent = 'Escala Nativa';
+        if (badgeCurrentSize) badgeCurrentSize.textContent = 'Flash SPI';
+        if (badgeCurrentFw) badgeCurrentFw.textContent = `FW TFT: v${d.display_fw || '--'}`;
+        if (currentScreenDateVal) currentScreenDateVal.textContent = 'Sem registros locais';
+        if (btnForgetScreen) btnForgetScreen.style.display = 'none';
+        if (infoTftCurrentScreen) infoTftCurrentScreen.textContent = 'Padrão de Fábrica';
+      }
+
+      if (d.display_fw && infoTftDisplay) {
+        infoTftDisplay.textContent = `240 × 135 px (RGB565) • FW v${d.display_fw}`;
+      }
+    }
+
+    window.onCurrentScreenLoaded = function(d) {
+      if (d) {
+        try {
+          localStorage.setItem('k86_saved_screen', JSON.stringify(d));
+        } catch (_) {}
+        renderCurrentScreen(d);
+      }
+    };
+
+    function fetchCurrentScreen() {
+      try {
+        const cached = localStorage.getItem('k86_saved_screen');
+        if (cached) renderCurrentScreen(JSON.parse(cached));
+      } catch (_) {}
+      sendToPython('get_current_screen');
+    }
+
+    if (btnForgetScreen) {
+      btnForgetScreen.addEventListener('click', () => {
+        if (confirm('Deseja limpar o registro local da tela salva? Isso redefinirá a exibição desta aba para o modo padrão de fábrica.')) {
+          try {
+            localStorage.removeItem('k86_saved_screen');
+          } catch (_) {}
+          sendToPython('clear_current_screen');
+        }
+      });
+    }
+
     // Tab 1: Screen & GIF logic
     const dropzone = document.getElementById('dropzone');
     const fileInput = document.getElementById('fileInput');
@@ -247,6 +353,7 @@
     framesSlider.addEventListener('input', () => framesVal.textContent = framesSlider.value);
 
     function loadFile(file) {
+      currentSelectedFileName = file.name;
       fileName.textContent = file.name;
       badgeSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
       hideAlert();
@@ -311,6 +418,7 @@
         showAlert('success', '✓ Sucesso! O GIF foi gravado na telinha do seu teclado.');
         isUploading = false;
         btnUpload.disabled = false;
+        fetchCurrentScreen();
       } else if (msg.status === 'error') {
         showAlert('error', '✗ Erro: ' + msg.msg);
         isUploading = false;
@@ -332,6 +440,7 @@
 
       sendToPython('upload', {
         image: currentFileBase64,
+        file_name: currentSelectedFileName || 'animacao.gif',
         delay: parseInt(delaySlider.value, 10),
         max_frames: parseInt(framesSlider.value, 10),
         fit: currentFitMode
@@ -852,4 +961,5 @@
       const initialTab = document.querySelector(`.tab-btn[data-tab="${window.location.hash.slice(1)}"]`);
       if (initialTab) initialTab.click();
     }
+    fetchCurrentScreen();
     setInterval(checkDevice, 4000);

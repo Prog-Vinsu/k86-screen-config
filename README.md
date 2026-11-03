@@ -14,11 +14,13 @@
 * **Native Desktop Window (GTK 3 + WebKit2GTK):** Clean desktop application running in your native desktop environment with full **Drag & Drop** support.
 * **Direct IPC (Zero HTTP Server):** Completely eliminates local HTTP ports or CORS vulnerabilities; communication stays within an isolated process memory bridge.
 * **Hardware Safety Verification:** Queries device identity via read-only command `0x8F` before transmitting any data packets, ensuring only verified Attack Shark K86 controllers receive screen writes.
-* **Animated GIF & Screen Upload:**
-  * Real-time 240×135 bezel preview.
-  * Frame delay & playback speed slider.
-  * Smart frame downsampling to fit keyboard flash memory safely.
-  * Fit modes: Crop to fill (default), Contain (letterbox), or Stretch.
+* **Animated GIF & Screen Management:**
+  * **Current Screen Saved on Keyboard:** Live status card displaying the animation currently stored in the keyboard's flash memory, including animated bezel preview, filename, upload date/time, frame count, playback speed (ms/FPS), fit mode, flash storage footprint, and onboard display firmware revision (`0xAD`).
+  * **Real-time 240×135 bezel preview** with pixel-perfect aspect ratio scaling.
+  * **Frame delay & playback speed slider** (fine-tuned from 5 to 150 ms).
+  * **Smart frame downsampling** to safely fit the keyboard's SPI flash memory limit.
+  * **Fit modes:** Crop to fill (default), Contain (letterbox), or Stretch.
+  * **Standby Mode & History Reset:** Fallback dashboard view for factory default screens with quick clear option.
 * **Hardware Settings (sharkfin-compatible):**
   * **OLED/TFT Clock Sync:** Synchronize the keyboard screen's onboard clock with the computer time in one click.
   * **Debounce Adjustment:** 1ms to 10ms key debounce response time.

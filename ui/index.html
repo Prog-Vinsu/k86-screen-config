@@ -69,6 +69,65 @@
         </div>
       </div>
     </div>
+    <!-- PAINEL: TELA ATUAL SALVA NO TECLADO -->
+    <div id="currentScreenPanel" class="panel current-screen-panel">
+      <div class="panel-header-row">
+        <h2 class="panel-title">
+          <svg viewBox="0 0 24 24"><rect width="20" height="15" x="2" y="3" rx="2"/><path d="M12 18v3M8 21h8"/></svg>
+          Tela Atual Salva no Teclado
+        </h2>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span id="currentScreenBadgeStatus" class="badge current-status-badge status-default">Detectando...</span>
+          <button id="btnForgetScreen" class="btn btn-icon-subtle" title="Limpar registro da tela salva" style="display: none;">
+            <svg viewBox="0 0 24 24" style="width: 15px; height: 15px;"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="preview-container">
+        <div class="screen-bezel current-bezel">
+          <img id="currentScreenImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 240 135' width='240' height='135'%3E%3Cdefs%3E%3ClinearGradient id='bgGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23070a0f'/%3E%3Cstop offset='100%25' stop-color='%230d131f'/%3E%3C/linearGradient%3E%3Cpattern id='grid' width='12' height='12' patternUnits='userSpaceOnUse'%3E%3Cpath d='M 12 0 L 0 0 0 12' fill='none' stroke='rgba(255,255,255,0.04)' stroke-width='0.5'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='240' height='135' fill='url(%23bgGrad)'/%3E%3Crect width='240' height='135' fill='url(%23grid)'/%3E%3Cline x1='10' y1='20' x2='230' y2='20' stroke='rgba(245,158,11,0.25)' stroke-width='1'/%3E%3Ctext x='14' y='15' fill='%23f59e0b' font-size='9' font-family='monospace' font-weight='bold'%3EATTACK SHARK K86%3C/text%3E%3Ctext x='226' y='15' text-anchor='end' fill='%2310b981' font-size='9' font-family='monospace'%3EUSB 5V [OK]%3C/text%3E%3Ccircle cx='120' cy='62' r='22' stroke='rgba(0,210,255,0.3)' stroke-width='1.5' fill='rgba(0,210,255,0.05)'/%3E%3Cpath d='M120 48 v14 l9 9' stroke='%2300d2ff' stroke-width='2' stroke-linecap='round'/%3E%3Ctext x='120' y='98' text-anchor='middle' fill='%23f1f5f9' font-size='11' font-family='sans-serif' font-weight='600'%3ESTANDBY • AGUARDANDO GIF%3C/text%3E%3Ctext x='120' y='112' text-anchor='middle' fill='%2394a3b8' font-size='9' font-family='monospace'%3E240 × 135 px • RGB565 16-BIT%3C/text%3E%3Cline x1='10' y1='122' x2='230' y2='122' stroke='rgba(255,255,255,0.08)' stroke-width='1'/%3E%3C/svg%3E" alt="Tela Atual K86">
+        </div>
+        
+        <div class="file-details">
+          <div id="currentScreenFileName" class="file-name">Padrão de Fábrica / Sem Gravação</div>
+          <div id="currentScreenSubtitle" style="color: var(--muted); font-size: 0.83rem;">O display do teclado exibe o tema inicial ou a última mídia gravada na memória flash.</div>
+          
+          <div class="badge-row">
+            <div id="badgeCurrentRes" class="badge">240 × 135 px</div>
+            <div id="badgeCurrentFrames" class="badge">-- quadros</div>
+            <div id="badgeCurrentSpeed" class="badge">-- ms/quadro</div>
+            <div id="badgeCurrentFit" class="badge">--</div>
+            <div id="badgeCurrentSize" class="badge">-- MB Flash</div>
+            <div id="badgeCurrentFw" class="badge" title="Versão do firmware da controladora do display">FW TFT: --</div>
+          </div>
+
+          <div id="currentScreenExtraInfo" class="current-screen-meta-box">
+            <div class="current-meta-item">
+              <span class="meta-label">Display:</span>
+              <span class="meta-val">TFT LCD 16:9 (ST7789)</span>
+            </div>
+            <div class="current-meta-item">
+              <span class="meta-label">Modo de Cor:</span>
+              <span class="meta-val">RGB565 (16 bits)</span>
+            </div>
+            <div class="current-meta-item">
+              <span class="meta-label">Último Envio:</span>
+              <span id="currentScreenDateVal" class="meta-val">--</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEÇÃO: GRAVAR NOVO GIF / IMAGEM -->
+    <div class="section-divider-row">
+      <h3 class="section-subtitle">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+        Gravar Nova Animação na Telinha
+      </h3>
+      <span class="section-subtitle-hint">Substitui a animação gravada na memória flash</span>
+    </div>
 
     <div id="dropzone" class="dropzone">
       <svg viewBox="0 0 24 24">
@@ -529,7 +588,8 @@
             <tr><td>ID USB (VID:PID):</td><td id="infoUsbId" class="font-mono">3151:4015</td></tr>
             <tr><td>Chipset / Família:</td><td id="infoFamily">ROYUAN YC500 / YC3121</td></tr>
             <tr><td>Nó de Comunicação:</td><td id="infoNode" class="font-mono">/dev/hidrawX</td></tr>
-            <tr><td>Display TFT:</td><td>240 × 135 px (RGB565)</td></tr>
+            <tr><td>Display TFT:</td><td id="infoTftDisplay">240 × 135 px (RGB565)</td></tr>
+            <tr><td>Tela na Flash:</td><td id="infoTftCurrentScreen" class="font-mono">Padrão de Fábrica</td></tr>
             <tr><td>Alimentação / Bateria:</td><td id="infoKbBattery">Alimentado via USB (5V)</td></tr>
           </tbody>
         </table>
