@@ -634,6 +634,15 @@
       mouseDebounceVal.textContent = sliderMouseDebounce.value + ' ms';
     });
 
+    const DPI_STAGE_COLORS = [
+      '#ff3b30', // 1: Red
+      '#34c759', // 2: Green
+      '#007aff', // 3: Blue
+      '#ffcc00', // 4: Yellow
+      '#00d2ff', // 5: Cyan
+      '#af52de'  // 6: Purple
+    ];
+
     function renderDpiStages(stages, activeStage) {
       if (!mouseDpiStagesContainer) return;
       mouseDpiStagesContainer.innerHTML = '';
@@ -641,35 +650,37 @@
       stages.forEach((dpi, idx) => {
         const stageNum = idx + 1;
         const isCurrent = stageNum === activeStage;
+        const color = DPI_STAGE_COLORS[idx % DPI_STAGE_COLORS.length];
         
         const card = document.createElement('div');
-        card.style.background = isCurrent ? 'rgba(0, 210, 255, 0.12)' : 'var(--card)';
-        card.style.border = isCurrent ? '1px solid var(--telemetry)' : '1px solid var(--border)';
-        card.style.borderRadius = 'var(--radius)';
-        card.style.padding = '10px 12px';
-        card.style.display = 'flex';
-        card.style.flexDirection = 'column';
-        card.style.gap = '8px';
+        card.className = `mouse-stage-card ${isCurrent ? 'active' : ''}`;
 
         card.innerHTML = `
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-weight: 600; font-size: 13px; color: ${isCurrent ? 'var(--telemetry)' : 'var(--text)'};">
-              Estágio ${stageNum} ${isCurrent ? '(Ativo)' : ''}
-            </span>
-            <input type="radio" name="activeDpiStage" value="${stageNum}" ${isCurrent ? 'checked' : ''} style="cursor: pointer;">
+          <div class="mouse-stage-header">
+            <div class="mouse-stage-title">
+              <span class="mouse-stage-color-dot" style="background: ${color}; color: ${color};"></span>
+              <span>Estágio ${stageNum} ${isCurrent ? '• Ativo' : ''}</span>
+            </div>
+            <input type="radio" name="activeDpiStage" value="${stageNum}" ${isCurrent ? 'checked' : ''} class="mouse-stage-radio">
           </div>
-          <div style="display: flex; align-items: center; gap: 6px;">
-            <input type="number" class="text-input font-mono" min="50" max="22000" step="50" value="${dpi}" data-stage-index="${idx}" style="padding: 4px 8px; font-size: 13px;">
-            <span style="font-size: 12px; color: var(--muted);">DPI</span>
+          <div class="mouse-stage-input-row">
+            <input type="number" min="50" max="22000" step="50" value="${dpi}" data-stage-index="${idx}">
+            <span class="unit">DPI</span>
           </div>
         `;
 
-        card.querySelector('input[type="radio"]').addEventListener('change', () => {
-          mouseState.active_stage = stageNum;
-          renderDpiStages(mouseState.dpi_stages, mouseState.active_stage);
+        const radio = card.querySelector('input[type="radio"]');
+        const numInput = card.querySelector('input[type="number"]');
+
+        card.addEventListener('click', (e) => {
+          if (e.target !== numInput) {
+            radio.checked = true;
+            mouseState.active_stage = stageNum;
+            renderDpiStages(mouseState.dpi_stages, mouseState.active_stage);
+          }
         });
 
-        card.querySelector('input[type="number"]').addEventListener('change', (e) => {
+        numInput.addEventListener('change', (e) => {
           const val = Math.max(50, Math.min(22000, parseInt(e.target.value, 10) || 800));
           e.target.value = val;
           mouseState.dpi_stages[idx] = val;
