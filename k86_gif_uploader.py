@@ -13,6 +13,7 @@ import base64
 import datetime
 import fcntl
 import glob
+import hmac
 import io
 import json
 import os
@@ -21,6 +22,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import urllib.parse
 import time
 from typing import List, Optional, Tuple, Dict, Any
 
@@ -50,6 +52,32 @@ SUPPORTED_VID_PIDS = [
 VERIFIED_K86_DEVICE_IDS = [1168, 2730]
 CONFIG_DIR = os.path.join(os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config")), "attack-shark-k86")
 CURRENT_SCREEN_FILE = os.path.join(CONFIG_DIR, "current_screen.json")
+
+def is_safe_external_url(url: Any) -> bool:
+    if not isinstance(url, str):
+        return False
+    u = url.strip()
+    if u.startswith("-"):
+        return False
+    try:
+        parsed = urllib.parse.urlparse(u)
+        return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+    except Exception:
+        return False
+
+
+def get_loopback_client_uid(client_port: int) -> Optional[int]:
+    p_hex = f"{client_port:04X}"
+    for proc_file in ("/proc/net/tcp", "/proc/net/tcp6"):
+        try:
+            with open(proc_file, "r") as f:
+                for line in f:
+                    parts = line.strip().split()
+                    if len(parts) > 7 and parts[1].endswith(f":{p_hex}"):
+                        return int(parts[7])
+        except Exception:
+            pass
+    return None
 
 
 def _ioc(nr: int, ln: int) -> int:
@@ -639,9 +667,9 @@ def execute_upload(
     dry_run: bool = False,
 ) -> bool:
     dev_id = dev.read_device_id()
-    if dev_id is not None and dev_id not in VERIFIED_K86_DEVICE_IDS:
+    if dev_id not in VERIFIED_K86_DEVICE_IDS:
         raise RuntimeError(
-            f"Dispositivo incompatível detectado (ID {dev_id}). "
+            f"Dispositivo incompatível ou não reconhecido (ID {dev_id}). "
             f"Este carregador é restrito ao Attack Shark K86 (IDs verificados: {VERIFIED_K86_DEVICE_IDS})."
         )
 
@@ -1001,8 +1029,8 @@ def launch_native_gui(dry_run: bool = False):
 
             elif action == "open_external":
                 url = data.get("url")
-                if url:
-                    subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if url and is_safe_external_url(url):
+                    subprocess.Popen(["xdg-open", url.strip()], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
             elif action == "mouse_status":
                 m_status = x11_mouse.mouse_manager.get_status()
@@ -1032,30 +1060,51 @@ def launch_native_gui(dry_run: bool = False):
 # ==============================================================================
 def launch_fallback_browser_gui(dry_run: bool = False):
     import http.server
-    import urllib.parse
 
     x11_mouse.mouse_manager.start()
 
     token = secrets.token_hex(24)
+    runtime_dir = os.environ.get("XDG_RUNTIME_DIR", f"/tmp/user_{os.getuid()}")
+    app_runtime_dir = os.path.join(runtime_dir, "attack-shark-k86")
+    try:
+        os.makedirs(app_runtime_dir, mode=0o700, exist_ok=True)
+        token_file = os.path.join(app_runtime_dir, "auth_token")
+        with open(os.open(token_file, os.O_CREAT | os.O_WRONLY | os.O_TRUNC, 0o600), "w") as f:
+            f.write(token)
+    except Exception:
+        pass
+
     class SecureHandler(http.server.BaseHTTPRequestHandler):
         def log_message(self, format, *args):
             pass
 
         def verify_token(self) -> bool:
             auth_header = self.headers.get("X-Auth-Token")
-            if auth_header and auth_header == token:
+            if auth_header and hmac.compare_digest(auth_header, token):
                 return True
+            cookie_header = self.headers.get("Cookie", "")
+            if cookie_header:
+                for c in cookie_header.split(";"):
+                    k, _, v = c.strip().partition("=")
+                    if k == "k86_auth_token" and hmac.compare_digest(v, token):
+                        return True
             parsed = urllib.parse.urlparse(self.path)
             q = urllib.parse.parse_qs(parsed.query)
-            return q.get("t", [""])[0] == token
+            q_token = q.get("t", [""])[0]
+            if q_token and hmac.compare_digest(q_token, token):
+                return True
+            return False
 
         def do_GET(self):
             parsed = urllib.parse.urlparse(self.path)
             path = parsed.path
 
             if path in ["/", "/index.html"]:
-                if not self.verify_token():
-                    self.send_error(403, "Token de autenticação inválido.")
+                client_port = self.client_address[1]
+                client_uid = get_loopback_client_uid(client_port)
+                same_user = (client_uid == os.getuid()) if client_uid is not None else False
+                if not (same_user or self.verify_token()):
+                    self.send_error(403, "Acesso não autorizado.")
                     return
                 ui_path = os.path.join(SCRIPT_DIR, "ui", "index.html")
                 with open(ui_path, "r", encoding="utf-8") as f:
@@ -1065,21 +1114,27 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Content-Length", str(len(body)))
+                self.send_header("Set-Cookie", f"k86_auth_token={token}; Path=/; SameSite=Strict; HttpOnly")
                 self.end_headers()
                 self.wfile.write(body)
 
             else:
-                # Servir assets estáticos (CSS, JS, imagens)
+                # Servir assets estáticos (CSS, JS, imagens) estritamente de ui/
                 rel_path = path.lstrip("/")
-                # Tenta em ui/ primeiro, depois no diretório raiz
-                target_file = os.path.abspath(os.path.join(SCRIPT_DIR, "ui", rel_path))
-                if not target_file.startswith(os.path.abspath(SCRIPT_DIR)):
-                    self.send_error(403)
+                ui_dir = os.path.abspath(os.path.join(SCRIPT_DIR, "ui"))
+                target_file = os.path.abspath(os.path.join(ui_dir, rel_path))
+
+                if rel_path == "icon.png" and not os.path.exists(target_file):
+                    target_file = os.path.abspath(os.path.join(SCRIPT_DIR, "icon.png"))
+                    allowed = True
+                else:
+                    allowed = os.path.commonpath([target_file, ui_dir]) == ui_dir
+
+                if not allowed:
+                    self.send_error(403, "Acesso negado.")
                     return
-                if not os.path.exists(target_file):
-                    target_file = os.path.abspath(os.path.join(SCRIPT_DIR, rel_path))
-                if not target_file.startswith(os.path.abspath(SCRIPT_DIR)) or not os.path.exists(target_file) or os.path.isdir(target_file):
-                    self.send_error(404)
+                if not os.path.isfile(target_file):
+                    self.send_error(404, "Arquivo não encontrado.")
                     return
 
                 import mimetypes
@@ -1272,8 +1327,8 @@ def launch_fallback_browser_gui(dry_run: bool = False):
 
             elif parsed.path == "/api/open_external":
                 url = payload.get("url")
-                if url:
-                    subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if url and is_safe_external_url(url):
+                    subprocess.Popen(["xdg-open", url.strip()], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 send_json({"success": True})
 
             elif parsed.path == "/api/upload":
@@ -1332,9 +1387,8 @@ def launch_fallback_browser_gui(dry_run: bool = False):
 
     server = http.server.HTTPServer(("127.0.0.1", 0), SecureHandler)
     port = server.server_port
-    url = f"http://127.0.0.1:{port}/?t={token}"
+    url = f"http://127.0.0.1:{port}/"
 
-    runtime_dir = os.environ.get("XDG_RUNTIME_DIR", f"/tmp/user_{os.getuid()}")
     profile_dir = os.path.join(runtime_dir, "k86_uploader_browser")
 
     chrome_bin = shutil.which("google-chrome") or shutil.which("brave-browser") or shutil.which("chromium")
