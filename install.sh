@@ -4,7 +4,8 @@ set -e
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 APP_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/applications"
 ICON_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/icons/hicolor/256x256/apps"
-UDEV_RULE_FILE="/etc/udev/rules.d/70-attack-shark-k86.rules"
+UDEV_RULE_FILE="/etc/udev/rules.d/70-attack-shark-devices.rules"
+OLD_UDEV_RULE_FILE="/etc/udev/rules.d/70-attack-shark-k86.rules"
 
 echo "=========================================================="
 echo "  Attack Shark K86 Screen Uploader - Instalador Linux"
@@ -36,11 +37,25 @@ chmod +x "$DESKTOP_FILE"
 if command -v update-desktop-database >/dev/null 2>&1; then
     update-desktop-database "$APP_DIR" >/dev/null 2>&1 || true
 fi
-RULE_CONTENT='SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3151", ATTRS{idProduct}=="4015|5002", MODE="0660", TAG+="uaccess"'
+RULE_CONTENT='# Attack Shark K86 Keyboard
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3151", ATTRS{idProduct}=="4015|5002", MODE="0660", TAG+="uaccess"
+# Attack Shark X11 Mouse (Wireless Dongle & Wired)
+SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1d57", ATTRS{idProduct}=="fa60|fa55", MODE="0660", TAG+="uaccess"'
 echo "[✓] Atalho de aplicativo instalado em: $DESKTOP_FILE"
 echo ""
+if [ -f "$OLD_UDEV_RULE_FILE" ]; then
+    if command -v sudo >/dev/null 2>&1; then
+        sudo rm -f "$OLD_UDEV_RULE_FILE"
+    fi
+fi
+
 if [ -f "$UDEV_RULE_FILE" ]; then
-    echo "[✓] Regra udev já existe em $UDEV_RULE_FILE."
+    echo "[✓] Atualizando regra udev em $UDEV_RULE_FILE..."
+    if [ -t 0 ] && command -v sudo >/dev/null 2>&1; then
+        echo "$RULE_CONTENT" | sudo tee "$UDEV_RULE_FILE" >/dev/null
+        sudo udevadm control --reload-rules && sudo udevadm trigger
+        echo "[✓] Regra udev atualizada!"
+    fi
 else
     if [ -t 0 ] && command -v sudo >/dev/null 2>&1; then
         echo "Instalando regra udev em $UDEV_RULE_FILE..."
@@ -49,7 +64,7 @@ else
         echo "[✓] Regra udev instalada com sucesso!"
     else
         echo "[*] Para instalar a regra udev e não precisar de sudo no futuro, rode manualmente:"
-        echo "    echo '$RULE_CONTENT' | sudo tee $UDEV_RULE_FILE"
+        echo "    printf '%s\n' '$RULE_CONTENT' | sudo tee $UDEV_RULE_FILE"
         echo "    sudo udevadm control --reload-rules && sudo udevadm trigger"
     fi
 fi

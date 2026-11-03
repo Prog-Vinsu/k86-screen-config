@@ -22,7 +22,9 @@ import subprocess
 import sys
 import threading
 import time
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict, Any
+
+import x11_mouse
 
 try:
     from PIL import Image, ImageOps, ImageSequence
@@ -603,7 +605,9 @@ def launch_native_gui(dry_run: bool = False):
     ucm = WebKit2.UserContentManager()
     ucm.register_script_message_handler("pybridge")
 
-    win = Gtk.Window(title="Attack Shark K86 Configurator")
+    x11_mouse.mouse_manager.start()
+
+    win = Gtk.Window(title="Attack Shark K86 & X11 Configurator")
     win.set_default_size(700, 840)
     win.set_position(Gtk.WindowPosition.CENTER)
 
@@ -837,6 +841,15 @@ def launch_native_gui(dry_run: bool = False):
                 if url:
                     subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
+            elif action == "mouse_status":
+                m_status = x11_mouse.mouse_manager.get_status()
+                eval_js(f"window.onMouseStatus && window.onMouseStatus({json.dumps(m_status)});")
+
+            elif action == "mouse_apply_settings":
+                cfg = data.get("settings", {})
+                ok = x11_mouse.mouse_manager.apply_settings(cfg)
+                eval_js(f"window.onMouseFeedback && window.onMouseFeedback({json.dumps({'success': ok, 'message': 'Configurações do mouse aplicadas!' if ok else 'Erro ao aplicar configurações no mouse.'})});")
+
         except Exception as e:
             print("Erro no tratamento IPC:", e)
 
@@ -858,8 +871,9 @@ def launch_fallback_browser_gui(dry_run: bool = False):
     import http.server
     import urllib.parse
 
-    token = secrets.token_hex(24)
+    x11_mouse.mouse_manager.start()
 
+    token = secrets.token_hex(24)
     class SecureHandler(http.server.BaseHTTPRequestHandler):
         def log_message(self, format, *args):
             pass
@@ -1064,6 +1078,20 @@ def launch_fallback_browser_gui(dry_run: bool = False):
                 except Exception as e:
                     resp = {"ok": False, "error": str(e)}
                 send_json(resp)
+            elif parsed.path == "/api/mouse_status":
+                m_status = x11_mouse.mouse_manager.get_status()
+                send_json(m_status)
+
+            elif parsed.path == "/api/mouse_apply_settings":
+                cfg = payload.get("settings", {})
+                ok = x11_mouse.mouse_manager.apply_settings(cfg)
+                send_json({"success": ok, "message": "Configurações do mouse aplicadas!" if ok else "Erro ao aplicar configurações no mouse."})
+
+            elif parsed.path == "/api/open_external":
+                url = payload.get("url")
+                if url:
+                    subprocess.Popen(["xdg-open", url], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                send_json({"success": True})
 
             elif parsed.path == "/api/upload":
                 self.send_response(200)

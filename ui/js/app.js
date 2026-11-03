@@ -12,7 +12,21 @@
     const alertBox = document.getElementById('alertBox');
     const deviceBadge = document.getElementById('deviceBadge');
     const deviceText = document.getElementById('deviceText');
+    const mouseBadge = document.getElementById('mouseBadge');
+    const mouseText = document.getElementById('mouseText');
+    const mouseBatteryVal = document.getElementById('mouseBatteryVal');
 
+    // Mouse State
+    let mouseState = {
+      polling_rate: 1000,
+      debounce_ms: 4,
+      lod: 0,
+      sleep_minutes: 5,
+      angle_snap: false,
+      ripple_control: false,
+      active_stage: 2,
+      dpi_stages: [800, 1600, 2400, 3200, 5000, 22000]
+    };
     // Tab Navigation
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -25,6 +39,9 @@
         // Auto-fetch settings when entering device or lighting tabs
         if (btn.dataset.tab === 'tab-device' || btn.dataset.tab === 'tab-lighting' || btn.dataset.tab === 'tab-info') {
           fetchKeyboardSettings();
+        }
+        if (btn.dataset.tab === 'tab-mouse') {
+          fetchMouseSettings();
         }
         if (btn.dataset.tab === 'tab-lighting') {
           startKeyboardPreview();
@@ -606,9 +623,142 @@
       }
     });
 
+    // ==============================================================================
+    // TAB 5: ATTACK SHARK X11 MOUSE LOGIC
+    // ==============================================================================
+    const mouseDpiStagesContainer = document.getElementById('mouseDpiStagesContainer');
+    const sliderMouseDebounce = document.getElementById('sliderMouseDebounce');
+    const mouseDebounceVal = document.getElementById('mouseDebounceVal');
+
+    sliderMouseDebounce?.addEventListener('input', () => {
+      mouseDebounceVal.textContent = sliderMouseDebounce.value + ' ms';
+    });
+
+    function renderDpiStages(stages, activeStage) {
+      if (!mouseDpiStagesContainer) return;
+      mouseDpiStagesContainer.innerHTML = '';
+
+      stages.forEach((dpi, idx) => {
+        const stageNum = idx + 1;
+        const isCurrent = stageNum === activeStage;
+        
+        const card = document.createElement('div');
+        card.style.background = isCurrent ? 'rgba(0, 210, 255, 0.12)' : 'var(--card)';
+        card.style.border = isCurrent ? '1px solid var(--telemetry)' : '1px solid var(--border)';
+        card.style.borderRadius = 'var(--radius)';
+        card.style.padding = '10px 12px';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.gap = '8px';
+
+        card.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-weight: 600; font-size: 13px; color: ${isCurrent ? 'var(--telemetry)' : 'var(--text)'};">
+              Estágio ${stageNum} ${isCurrent ? '(Ativo)' : ''}
+            </span>
+            <input type="radio" name="activeDpiStage" value="${stageNum}" ${isCurrent ? 'checked' : ''} style="cursor: pointer;">
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <input type="number" class="text-input font-mono" min="50" max="22000" step="50" value="${dpi}" data-stage-index="${idx}" style="padding: 4px 8px; font-size: 13px;">
+            <span style="font-size: 12px; color: var(--muted);">DPI</span>
+          </div>
+        `;
+
+        card.querySelector('input[type="radio"]').addEventListener('change', () => {
+          mouseState.active_stage = stageNum;
+          renderDpiStages(mouseState.dpi_stages, mouseState.active_stage);
+        });
+
+        card.querySelector('input[type="number"]').addEventListener('change', (e) => {
+          const val = Math.max(50, Math.min(22000, parseInt(e.target.value, 10) || 800));
+          e.target.value = val;
+          mouseState.dpi_stages[idx] = val;
+        });
+
+        mouseDpiStagesContainer.appendChild(card);
+      });
+    }
+
+    function fetchMouseSettings() {
+      sendToPython('mouse_status');
+    }
+
+    window.onMouseStatus = function(d) {
+      if (!mouseBadge || !mouseText) return;
+      if (d.connected) {
+        mouseBadge.className = 'status-badge connected';
+        mouseText.textContent = d.is_wireless ? 'Mouse X11 (2.4G)' : 'Mouse X11 (Cabo)';
+        if (mouseBatteryVal) {
+          mouseBatteryVal.textContent = d.battery !== null ? `${d.battery}%` : 'Carregando...';
+        }
+      } else {
+        mouseBadge.className = 'status-badge';
+        mouseText.textContent = 'Mouse X11 Desconectado';
+        if (mouseBatteryVal) {
+          mouseBatteryVal.textContent = '--%';
+        }
+      }
+
+      // Populate state
+      if (d.polling_rate) {
+        document.getElementById('selMousePolling').value = d.polling_rate;
+        mouseState.polling_rate = d.polling_rate;
+      }
+      if (d.debounce_ms) {
+        sliderMouseDebounce.value = d.debounce_ms;
+        mouseDebounceVal.textContent = d.debounce_ms + ' ms';
+        mouseState.debounce_ms = d.debounce_ms;
+      }
+      if (d.lod !== undefined) {
+        document.getElementById('selMouseLod').value = d.lod;
+        mouseState.lod = d.lod;
+      }
+      if (d.sleep_minutes !== undefined) {
+        document.getElementById('selMouseSleep').value = d.sleep_minutes;
+        mouseState.sleep_minutes = d.sleep_minutes;
+      }
+      if (d.angle_snap !== undefined) {
+        document.getElementById('switchMouseAngle').checked = !!d.angle_snap;
+        mouseState.angle_snap = !!d.angle_snap;
+      }
+      if (d.ripple_control !== undefined) {
+        document.getElementById('switchMouseRipple').checked = !!d.ripple_control;
+        mouseState.ripple_control = !!d.ripple_control;
+      }
+      if (d.dpi_stages && d.dpi_stages.length > 0) {
+        mouseState.dpi_stages = d.dpi_stages;
+      }
+      if (d.active_stage) {
+        mouseState.active_stage = d.active_stage;
+      }
+      renderDpiStages(mouseState.dpi_stages, mouseState.active_stage);
+    };
+
+    window.onMouseFeedback = function(res) {
+      showAlert(res.message, res.success ? 'success' : 'error');
+    };
+
+    document.getElementById('btnApplyMouseSettings')?.addEventListener('click', () => {
+      const payload = {
+        polling_rate: parseInt(document.getElementById('selMousePolling').value, 10),
+        debounce_ms: parseInt(sliderMouseDebounce.value, 10),
+        lod: parseInt(document.getElementById('selMouseLod').value, 10),
+        sleep_minutes: parseFloat(document.getElementById('selMouseSleep').value),
+        angle_snap: document.getElementById('switchMouseAngle').checked,
+        ripple_control: document.getElementById('switchMouseRipple').checked,
+        active_stage: mouseState.active_stage,
+        dpi_stages: mouseState.dpi_stages
+      };
+
+      sendToPython('mouse_apply_settings', { settings: payload });
+    });
+
+    renderDpiStages(mouseState.dpi_stages, mouseState.active_stage);
+
     // Device check interval
     function checkDevice() {
       sendToPython('status');
+      sendToPython('mouse_status');
     }
 
     checkDevice();
