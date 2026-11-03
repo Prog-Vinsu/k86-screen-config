@@ -157,10 +157,10 @@ class X11MouseDevice:
             return None
         r, _, _ = select.select([self.fd], [], [], timeout_s)
         if r:
-            try:
-                return os.read(self.fd, 64)
-            except OSError:
-                return None
+            data = os.read(self.fd, 64)
+            if not data:
+                raise OSError("Dispositivo desconectado (EOF)")
+            return data
         return None
 
     def set_polling_rate(self, hz: int) -> bool:
@@ -346,10 +346,13 @@ class X11MouseManager:
                 except Exception:
                     # Device disconnected
                     if self.device:
-                        self.device.close()
+                        try:
+                            self.device.close()
+                        except Exception:
+                            pass
                         self.device = None
                         self.dev_info = None
-            else:
+                    time.sleep(1.0)
                 time.sleep(1.0)
 
     def get_status(self) -> Dict[str, Any]:

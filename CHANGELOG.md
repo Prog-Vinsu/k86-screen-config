@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Persistência sincronizada em `~/.config/attack-shark-k86/current_screen.json`, sincronizando gravações realizadas tanto pela interface gráfica (GUI) quanto pela linha de comando (CLI).
   - Exibição da versão do firmware TFT e do status da tela salva na tabela da aba de Dispositivo (`#tab-info`).
 
+### Security & Bug Fixes
+- **Eliminação de Exposição de Token no /proc (`k86_gif_uploader.py`):** Remoção do token da linha de comando de inicialização do navegador no modo fallback; autenticação protegida por verificação de UID do processo cliente (`/proc/net/tcp`), token em arquivo efêmero com permissões `0600` e cookies de sessão.
+- **Prevenção de Loop de 100% de CPU ao Desconectar Mouse (`x11_mouse.py`):** Propagação adequada de `OSError` e detecção de EOF em `read_input_report()`, permitindo que o loop de telemetria capture desconexões, feche o descritor e durma 1 segundo entre tentativas sem sobrecarregar a CPU.
+- **Mitigação de Path Traversal e Exposição de Arquivos no Servidor HTTP (`k86_gif_uploader.py`):** Confinamento estrito de arquivos estáticos a `ui/` via `os.path.commonpath` e remoção de fallback não autenticado para arquivos da raiz do repositório.
+- **Validação Estrita de Esquema de URL em `open_external` (`k86_gif_uploader.py`):** Restrição estrita a URLs `http://` e `https://` válidas antes da invocação do `xdg-open`, bloqueando `file://` e injeção de flags.
+- **Verificação Fail-Closed do ID do Teclado (`k86_gif_uploader.py`):** Rejeição fail-closed quando `read_device_id()` retornar `None`, impedindo gravação de flash em dispositivos não verificados.
+- **Comparação de Token em Tempo Constante (`k86_gif_uploader.py`):** Adoção de `hmac.compare_digest` para validação de cabeçalhos e cookies de autenticação.
+
 ## [1.2.0] - 2026-11-03
 
 ### Added
