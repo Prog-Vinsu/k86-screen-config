@@ -43,7 +43,7 @@
       box-sizing: border-box;
       margin: 0;
       padding: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Ubuntu", "Cantarell", sans-serif;
+      font-family: "Ubuntu", "Cantarell", sans-serif;
     }
 
     ::selection {
@@ -72,7 +72,7 @@
     }
 
     .font-mono, .badge, .file-name, #infoUsbId, #infoFamily, #infoNode, #labelColorHex, #labelSledColorHex {
-      font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      font-family: "JetBrains Mono", monospace;
       font-variant-numeric: tabular-nums;
     }
 
@@ -85,7 +85,8 @@
       background: var(--bg);
       color: var(--text);
       padding: 16px 20px;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
       gap: 14px;
@@ -174,7 +175,7 @@
       flex: 1;
       padding: 8px 12px;
       font-size: 0.85rem;
-      font-weight: 500;
+      font-weight: 600;
       border-radius: var(--radius-sm);
       border: 1px solid transparent;
       background: transparent;
@@ -184,7 +185,6 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      transition: all 0.15s ease;
     }
 
     .tab-btn:hover {
@@ -198,7 +198,6 @@
       color: var(--accent-fg);
       font-weight: 600;
       border-color: var(--accent-hover);
-      box-shadow: var(--shadow-surface);
     }
 
     .tab-btn svg {
@@ -211,14 +210,29 @@
     }
 
     /* Tab Content Areas */
+    .tabs-viewport {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+    }
+
     .tab-pane {
-      display: none;
+      position: absolute;
+      inset: 0;
+      overflow-y: auto;
+      padding-right: 4px;
+      display: flex;
       flex-direction: column;
       gap: 14px;
+      visibility: hidden;
+      pointer-events: none;
+      contain: strict;
     }
 
     .tab-pane.active {
-      display: flex;
+      visibility: visible;
+      pointer-events: auto;
+      z-index: 1;
     }
 
     /* Panels & Cards */
@@ -266,7 +280,7 @@
       padding: 26px 20px;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: border-color 0.12s ease, background-color 0.12s ease;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -395,7 +409,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.15s ease;
+      transition: none;
     }
 
     .btn-icon-subtle svg {
@@ -605,7 +619,7 @@
       color: var(--muted);
       cursor: pointer;
       text-align: center;
-      transition: all 0.15s ease;
+      transition: none;
     }
 
     .radio-btn:hover {
@@ -666,7 +680,7 @@
       background: #1a202c;
       border: 1px solid var(--border);
       border-radius: 24px;
-      transition: 0.2s ease;
+      transition: background-color 0.12s ease, border-color 0.12s ease;
     }
 
     .toggle-slider:before {
@@ -678,7 +692,7 @@
       bottom: 3px;
       background: var(--muted);
       border-radius: 50%;
-      transition: 0.2s ease;
+      transition: transform 0.12s ease;
     }
 
     .toggle-switch input:focus-visible + .toggle-slider {
@@ -707,7 +721,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      transition: all 0.15s ease;
+      transition: none;
       border: 1px solid transparent;
       letter-spacing: 0.2px;
     }
@@ -978,7 +992,7 @@
       cursor: pointer;
       border: 1px solid rgba(255, 255, 255, 0.2);
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-      transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+      transition: none;
     }
 
     .preset-dot:hover {
@@ -1155,7 +1169,7 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      transition: all 0.2s ease;
+      transition: none;
       cursor: pointer;
       position: relative;
     }
@@ -1209,7 +1223,7 @@
       cursor: pointer;
       display: grid;
       place-content: center;
-      transition: all 0.15s ease;
+      transition: none;
     }
 
     .mouse-stage-radio:checked {

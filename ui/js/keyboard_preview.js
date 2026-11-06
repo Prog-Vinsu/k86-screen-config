@@ -81,18 +81,26 @@
     K86_KEYMAP.forEach((row, rIdx) => {
       const rg = ROW_GEOMS[rIdx];
       row.forEach((k, cIdx) => {
+        const cx = k.x + k.w / 2;
+        const cy = rg.y + rg.h / 2;
+        const minDim = Math.min(k.w, rg.h);
         FLAT_KEYS.push({
           ...k,
           y: rg.y,
           h: rg.h,
           row: rIdx,
           col: cIdx,
-          cx: k.x + k.w / 2,
-          cy: rg.y + rg.h / 2
+          cx,
+          cy,
+          nx: (cx - 26) / 500,
+          ny: (cy - 18) / 184,
+          underR: minDim * 0.36,
+          capR: minDim * 0.32,
+          innerR: minDim * 0.28,
+          isShortLegend: k.name.length <= 3
         });
       });
     });
-
     function roundRect(ctx, x, y, w, h, r) {
       ctx.beginPath();
       ctx.moveTo(x + r, y);
@@ -107,52 +115,127 @@
       ctx.closePath();
     }
 
-    function renderKeyboardPreview(now) {
-      const dt = (now - lastAnimTime) / 1000;
+    // Cached DOM references for preview loop
+    const elSelLedMode = document.getElementById('selLedMode');
+    const elSliderSpeed = document.getElementById('sliderSpeed');
+    const elSliderBrightness = document.getElementById('sliderBrightness');
+    const elSwitchLedOff = document.getElementById('switchLedOff');
+    const elSelSledMode = document.getElementById('selSledMode');
+    const elSliderSledSpeed = document.getElementById('sliderSledSpeed');
+    const elSliderSledBrightness = document.getElementById('sliderSledBrightness');
+    const elSwitchSideLedOff = document.getElementById('switchSideLedOff');
+    const elPreviewKeyModeLabel = document.getElementById('previewKeyModeLabel');
+    const elPreviewSideModeLabel = document.getElementById('previewSideModeLabel');
+    const elPreviewSpeedLabel = document.getElementById('previewSpeedLabel');
+    const elPreviewStatusText = document.getElementById('previewStatusText');
+
+    const lastLabels = { key: '', side: '', speed: '', status: '' };
+
+    // Pre-rendered static layer (Chassis, TFT Bezel & Glass Glare, Rotary Knob Base)
+    const staticCanvas = document.createElement('canvas');
+    staticCanvas.width = 680;
+    staticCanvas.height = 232;
+    const staticCtx = staticCanvas.getContext('2d');
+
+    (function initStaticKeyboardLayer() {
+      const chassisX = 10, chassisY = 8, chassisW = 660, chassisH = 214, chassisR = 14;
+      roundRect(staticCtx, chassisX, chassisY, chassisW, chassisH, chassisR);
+      staticCtx.fillStyle = '#0a0d13';
+      staticCtx.fill();
+      staticCtx.lineWidth = 1.5;
+      staticCtx.strokeStyle = '#1e2638';
+      staticCtx.stroke();
+
+      // Inner Plate Bevel
+      roundRect(staticCtx, chassisX + 8, chassisY + 6, chassisW - 16, chassisH - 12, 8);
+      staticCtx.fillStyle = '#0f131c';
+      staticCtx.fill();
+
+      // TFT Bezel & Screen Background
+      const tftX = 552, tftY = 16, tftW = 56, tftH = 32;
+      roundRect(staticCtx, tftX, tftY, tftW, tftH, 4);
+      staticCtx.fillStyle = '#05070a';
+      staticCtx.fill();
+      staticCtx.lineWidth = 1;
+      staticCtx.strokeStyle = '#232b3d';
+      staticCtx.stroke();
+
+      roundRect(staticCtx, tftX + 3, tftY + 3, tftW - 6, tftH - 6, 2);
+      staticCtx.fillStyle = '#030814';
+      staticCtx.fill();
+
+      // Static Screen Glass Glare
+      staticCtx.beginPath();
+      staticCtx.moveTo(tftX + 3, tftY + 3);
+      staticCtx.lineTo(tftX + 28, tftY + 3);
+      staticCtx.lineTo(tftX + 3, tftY + 24);
+      staticCtx.closePath();
+      staticCtx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      staticCtx.fill();
+
+      // Rotary Knob Base & Inner Knurled Surface
+      const knobX = 636, knobY = 32, knobR = 14;
+      staticCtx.beginPath();
+      staticCtx.arc(knobX, knobY, knobR, 0, Math.PI * 2);
+      staticCtx.fillStyle = '#161c28';
+      staticCtx.fill();
+      staticCtx.lineWidth = 1.5;
+      staticCtx.strokeStyle = '#2e394e';
+      staticCtx.stroke();
+
+      staticCtx.beginPath();
+      staticCtx.arc(knobX, knobY, knobR - 3, 0, Math.PI * 2);
+      staticCtx.fillStyle = '#0d1117';
+      staticCtx.fill();
+    })();
+
+    function drawKeyboardFrame(now) {
       lastAnimTime = now;
       const t = now / 1000;
 
-      const mode = parseInt(document.getElementById('selLedMode').value, 10);
-      const speedVal = parseInt(document.getElementById('sliderSpeed').value, 10);
+      const mode = parseInt(elSelLedMode.value, 10);
+      const speedVal = parseInt(elSliderSpeed.value, 10);
       const speedMult = [0.4, 0.7, 1.0, 1.5, 2.2][speedVal] || 1.0;
-      const rawBrt = parseInt(document.getElementById('sliderBrightness').value, 10);
-      const isLedOff = document.getElementById('switchLedOff')?.checked;
+      const rawBrt = parseInt(elSliderBrightness.value, 10);
+      const isLedOff = elSwitchLedOff?.checked;
       const brt = isLedOff ? 0 : rawBrt / 4.0;
 
-      const smode = parseInt(document.getElementById('selSledMode').value, 10);
-      const sspeedVal = parseInt(document.getElementById('sliderSledSpeed').value, 10);
+      const smode = parseInt(elSelSledMode.value, 10);
+      const sspeedVal = parseInt(elSliderSledSpeed.value, 10);
       const sspeedMult = [0.4, 0.7, 1.0, 1.5, 2.2][sspeedVal] || 1.0;
-      const rawSbrt = parseInt(document.getElementById('sliderSledBrightness').value, 10);
-      const isSledOff = document.getElementById('switchSideLedOff')?.checked;
+      const rawSbrt = parseInt(elSliderSledBrightness.value, 10);
+      const isSledOff = elSwitchSideLedOff?.checked;
       const sbrt = (isSledOff || smode === 0) ? 0 : rawSbrt / 4.0;
 
-      // Update indicator labels
-      const selModeText = document.getElementById('selLedMode').options[document.getElementById('selLedMode').selectedIndex]?.text || '';
-      const selSledText = document.getElementById('selSledMode').options[document.getElementById('selSledMode').selectedIndex]?.text || '';
-      document.getElementById('previewKeyModeLabel').textContent = selModeText.split('(')[0].trim();
-      document.getElementById('previewSideModeLabel').textContent = selSledText.split('(')[0].trim();
-      document.getElementById('previewSpeedLabel').textContent = `${speedVal}`;
-      document.getElementById('previewStatusText').textContent = brt === 0 ? 'Backlight Desligado' : (isRainbow ? 'Modo Arco-íris' : 'Cor Customizada');
+      // Dirty-checked indicator labels
+      const selModeText = (elSelLedMode.options[elSelLedMode.selectedIndex]?.text || '').split('(')[0].trim();
+      const selSledText = (elSelSledMode.options[elSelSledMode.selectedIndex]?.text || '').split('(')[0].trim();
+      const speedText = `${speedVal}`;
+      const statusText = brt === 0 ? 'Backlight Desligado' : (isRainbow ? 'Modo Arco-íris' : 'Cor Customizada');
 
-      // Clear canvas
+      if (selModeText !== lastLabels.key) {
+        elPreviewKeyModeLabel.textContent = selModeText;
+        lastLabels.key = selModeText;
+      }
+      if (selSledText !== lastLabels.side) {
+        elPreviewSideModeLabel.textContent = selSledText;
+        lastLabels.side = selSledText;
+      }
+      if (speedText !== lastLabels.speed) {
+        elPreviewSpeedLabel.textContent = speedText;
+        lastLabels.speed = speedText;
+      }
+      if (statusText !== lastLabels.status) {
+        elPreviewStatusText.textContent = statusText;
+        lastLabels.status = statusText;
+      }
+
+      // 1. Blit pre-rendered static chassis, TFT bezel & knob base
       kbCtx.clearRect(0, 0, kbCanvas.width, kbCanvas.height);
+      kbCtx.drawImage(staticCanvas, 0, 0);
 
-      // 1. Draw Keyboard Chassis
-      const chassisX = 10, chassisY = 8, chassisW = 660, chassisH = 214, chassisR = 14;
-      roundRect(kbCtx, chassisX, chassisY, chassisW, chassisH, chassisR);
-      kbCtx.fillStyle = '#0a0d13';
-      kbCtx.fill();
-      kbCtx.lineWidth = 1.5;
-      kbCtx.strokeStyle = '#1e2638';
-      kbCtx.stroke();
-
-      // Inner Plate Bevel
-      roundRect(kbCtx, chassisX + 8, chassisY + 6, chassisW - 16, chassisH - 12, 8);
-      kbCtx.fillStyle = '#0f131c';
-      kbCtx.fill();
-
-      // 2. Draw Side LED Strips (Left & Right Chassis Borders)
-      const drawSideStrip = (x, isRight) => {
+      // 2. Draw Side LED Strips (Left & Right Chassis Borders) without shadowBlur
+      const drawSideStrip = (x) => {
         const stripH = 176;
         const stripY = 24;
         const stripW = 4;
@@ -187,43 +270,27 @@
               sAlpha *= Math.max(0.15, head);
             }
 
-            // Diffuse Edge Glow
-            kbCtx.save();
-            kbCtx.shadowColor = `rgba(${sr}, ${sg}, ${sb}, ${sAlpha * 0.7})`;
-            kbCtx.shadowBlur = 8;
+            // Fast geometric halo + core segment
+            roundRect(kbCtx, x - 2, sy - 0.5, stripW + 4, segH, 3);
+            kbCtx.fillStyle = `rgba(${sr}, ${sg}, ${sb}, ${sAlpha * 0.25})`;
+            kbCtx.fill();
+
             roundRect(kbCtx, x, sy, stripW, segH - 1, 2);
             kbCtx.fillStyle = `rgba(${sr}, ${sg}, ${sb}, ${sAlpha * 0.9})`;
             kbCtx.fill();
-            kbCtx.restore();
           }
         } else {
-          // Unlit Side Strip Groove
           roundRect(kbCtx, x, stripY, stripW, stripH, 2);
           kbCtx.fillStyle = '#141822';
           kbCtx.fill();
         }
       };
 
-      drawSideStrip(13, false);
-      drawSideStrip(663, true);
+      drawSideStrip(13);
+      drawSideStrip(663);
 
-      // 3. Draw Signature K86 Hardware Cluster (TFT Screen + Volume Knob)
-      // A. TFT Bezel & Screen
-      const tftX = 552, tftY = 16, tftW = 56, tftH = 32;
-      roundRect(kbCtx, tftX, tftY, tftW, tftH, 4);
-      kbCtx.fillStyle = '#05070a';
-      kbCtx.fill();
-      kbCtx.lineWidth = 1;
-      kbCtx.strokeStyle = '#232b3d';
-      kbCtx.stroke();
-
-      // TFT Screen Content simulation
-      roundRect(kbCtx, tftX + 3, tftY + 3, tftW - 6, tftH - 6, 2);
-      kbCtx.fillStyle = '#030814';
-      kbCtx.fill();
-
-      // Tiny animated pixel wave on the TFT
-      kbCtx.save();
+      // 3. Dynamic TFT wave & Rotary Knob indicator
+      const tftX = 552, tftY = 16, tftW = 56;
       kbCtx.beginPath();
       for (let px = 0; px < tftW - 6; px += 2) {
         const py = tftY + 16 + Math.sin(px * 0.3 + t * 4) * 4;
@@ -233,56 +300,27 @@
       kbCtx.strokeStyle = '#00d2ff';
       kbCtx.lineWidth = 1.2;
       kbCtx.stroke();
-      kbCtx.restore();
 
-      // Screen Glass Glare
-      kbCtx.save();
-      kbCtx.beginPath();
-      kbCtx.moveTo(tftX + 3, tftY + 3);
-      kbCtx.lineTo(tftX + 28, tftY + 3);
-      kbCtx.lineTo(tftX + 3, tftY + 24);
-      kbCtx.closePath();
-      kbCtx.fillStyle = 'rgba(255, 255, 255, 0.08)';
-      kbCtx.fill();
-      kbCtx.restore();
-
-      // B. Rotary Knob
-      const knobX = 636, knobY = 32, knobR = 14;
-      kbCtx.save();
-      kbCtx.beginPath();
-      kbCtx.arc(knobX, knobY, knobR, 0, Math.PI * 2);
-      kbCtx.fillStyle = '#161c28';
-      kbCtx.fill();
-      kbCtx.lineWidth = 1.5;
-      kbCtx.strokeStyle = '#2e394e';
-      kbCtx.stroke();
-
-      // Inner knurled surface
-      kbCtx.beginPath();
-      kbCtx.arc(knobX, knobY, knobR - 3, 0, Math.PI * 2);
-      kbCtx.fillStyle = '#0d1117';
-      kbCtx.fill();
-
-      // Rotary dot indicator
+      const knobX = 636, knobY = 32;
       const dotAngle = (t * 0.8) % (Math.PI * 2);
-      const dotX = knobX + Math.cos(dotAngle) * 7;
-      const dotY = knobY + Math.sin(dotAngle) * 7;
       kbCtx.beginPath();
-      kbCtx.arc(dotX, dotY, 1.5, 0, Math.PI * 2);
+      kbCtx.arc(knobX + Math.cos(dotAngle) * 7, knobY + Math.sin(dotAngle) * 7, 1.5, 0, Math.PI * 2);
       kbCtx.fillStyle = '#f59e0b';
       kbCtx.fill();
-      kbCtx.restore();
 
       // Clean expired user ripples
       while (userRipples.length > 0 && now - userRipples[0].time > 900) {
         userRipples.shift();
       }
 
-      // 4. Draw All Keys & Dynamic Backlight
-      const totalKeys = FLAT_KEYS.length;
+      // 4. Draw All Keys & Dynamic Backlight without shadowBlur
+      kbCtx.textAlign = 'center';
+      kbCtx.textBaseline = 'middle';
+      let currentFontShort = null;
+
       FLAT_KEYS.forEach((k, idx) => {
-        const nx = (k.cx - 26) / 500;
-        const ny = (k.cy - 18) / 184;
+        const nx = k.nx;
+        const ny = k.ny;
 
         let kr = currentRgb[0], kg = currentRgb[1], kb = currentRgb[2];
         let kAlpha = brt;
@@ -386,21 +424,15 @@
           }
         }
 
-        // Switch socket underglow halo (organic RGB bloom)
+        // Fast geometric switch socket underglow halo
         if (kAlpha > 0.05) {
-          kbCtx.save();
-          kbCtx.shadowColor = `rgba(${kr}, ${kg}, ${kb}, ${kAlpha * 0.75})`;
-          kbCtx.shadowBlur = 10;
-          const underR = Math.min(k.w, k.h) * 0.36;
-          roundRect(kbCtx, k.x, k.y, k.w, k.h, underR);
-          kbCtx.fillStyle = `rgba(${kr}, ${kg}, ${kb}, ${kAlpha * 0.45})`;
+          roundRect(kbCtx, k.x - 1.5, k.y - 1.5, k.w + 3, k.h + 3, k.underR + 1.5);
+          kbCtx.fillStyle = `rgba(${kr}, ${kg}, ${kb}, ${kAlpha * 0.32})`;
           kbCtx.fill();
-          kbCtx.restore();
         }
 
         // Keycap Body
-        const capR = Math.min(k.w, k.h) * 0.32;
-        roundRect(kbCtx, k.x + 1.5, k.y + 1.5, k.w - 3, k.h - 3, capR);
+        roundRect(kbCtx, k.x + 1.5, k.y + 1.5, k.w - 3, k.h - 3, k.capR);
         kbCtx.fillStyle = '#0f131c';
         kbCtx.fill();
         kbCtx.lineWidth = 1;
@@ -408,36 +440,39 @@
         kbCtx.stroke();
 
         // Keycap Top Surface Bevel
-        const innerR = Math.min(k.w, k.h) * 0.28;
-        roundRect(kbCtx, k.x + 3, k.y + 3, k.w - 6, k.h - 6, innerR);
+        roundRect(kbCtx, k.x + 3, k.y + 3, k.w - 6, k.h - 6, k.innerR);
         kbCtx.fillStyle = kAlpha > 0.05 ? `rgba(${kr}, ${kg}, ${kb}, ${kAlpha * 0.18})` : '#131822';
         kbCtx.fill();
 
         // Keycap Legend Text
-        kbCtx.font = k.name.length > 3 ? '7.5px "JetBrains Mono", sans-serif' : '8.5px "JetBrains Mono", sans-serif';
-        kbCtx.textAlign = 'center';
-        kbCtx.textBaseline = 'middle';
+        if (k.isShortLegend !== currentFontShort) {
+          currentFontShort = k.isShortLegend;
+          kbCtx.font = currentFontShort ? '8.5px "JetBrains Mono", sans-serif' : '7.5px "JetBrains Mono", sans-serif';
+        }
         kbCtx.fillStyle = kAlpha > 0.05 ? `rgba(${Math.min(255, kr + 100)}, ${Math.min(255, kg + 100)}, ${Math.min(255, kb + 100)}, ${Math.max(0.5, kAlpha)})` : '#5a677f';
         kbCtx.fillText(k.name, k.cx, k.cy);
       });
+    }
 
-      kbAnimId = requestAnimationFrame(renderKeyboardPreview);
+    function renderKeyboardPreview() {
+      drawKeyboardFrame(performance.now());
+      if (kbAnimId !== null) {
+        kbAnimId = setTimeout(renderKeyboardPreview, 33);
+      }
     }
 
     function startKeyboardPreview() {
-      if (!kbAnimId) {
-        lastAnimTime = performance.now();
-        kbAnimId = requestAnimationFrame(renderKeyboardPreview);
+      if (kbAnimId === null) {
+        kbAnimId = setTimeout(renderKeyboardPreview, 16);
       }
     }
 
     function stopKeyboardPreview() {
-      if (kbAnimId) {
-        cancelAnimationFrame(kbAnimId);
+      if (kbAnimId !== null) {
+        clearTimeout(kbAnimId);
         kbAnimId = null;
       }
     }
-
     // Interactive Key Click
     kbCanvas.addEventListener('click', (e) => {
       const rect = kbCanvas.getBoundingClientRect();

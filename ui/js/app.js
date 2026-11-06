@@ -27,34 +27,32 @@
       active_stage: 2,
       dpi_stages: [800, 1600, 2400, 3200, 5000, 22000]
     };
-    // Tab Navigation
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        const target = document.getElementById(btn.dataset.tab);
-        if (target) target.classList.add('active');
+    // Tab Navigation (instant mousedown + keyboard click)
+    const tabButtons = Array.from(document.querySelectorAll('.tab-btn'));
+    const tabPanes = Array.from(document.querySelectorAll('.tab-pane'));
 
-        if (btn.dataset.tab === 'tab-screen') {
-          fetchCurrentScreen();
-        }
-        // Auto-fetch settings when entering device or lighting tabs
-        if (btn.dataset.tab === 'tab-device' || btn.dataset.tab === 'tab-lighting' || btn.dataset.tab === 'tab-info') {
-          fetchKeyboardSettings();
-        }
-        if (btn.dataset.tab === 'tab-mouse') {
-          fetchMouseSettings();
-        }
-        if (btn.dataset.tab === 'tab-lighting') {
-          startKeyboardPreview();
-        } else {
-          stopKeyboardPreview();
-        }
+    function activateTab(btn) {
+      if (!btn || btn.classList.contains('active')) return;
+      const tabId = btn.dataset.tab;
+      for (let i = 0; i < tabButtons.length; i++) {
+        tabButtons[i].classList.toggle('active', tabButtons[i] === btn);
+      }
+      for (let i = 0; i < tabPanes.length; i++) {
+        tabPanes[i].classList.toggle('active', tabPanes[i].id === tabId);
+      }
+      if (tabId === 'tab-lighting') {
+        startKeyboardPreview();
+      } else {
+        stopKeyboardPreview();
+      }
+    }
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('mousedown', (e) => {
+        if (e.button === 0) activateTab(btn);
       });
+      btn.addEventListener('click', () => activateTab(btn));
     });
-
-
     // IPC Messaging
     function sendToPython(action, data = {}) {
       const msg = { action, ...data };
@@ -66,7 +64,27 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Auth-Token': token },
           body: JSON.stringify(msg)
-        }).catch(console.error);
+        })
+          .then(res => (res.ok ? res.json() : null))
+          .then(resData => {
+            if (!resData) return;
+            if (action === 'status' && window.onDeviceStatus) {
+              window.onDeviceStatus(resData);
+            } else if ((action === 'get_current_screen' || action === 'clear_current_screen') && window.onCurrentScreenLoaded) {
+              window.onCurrentScreenLoaded(resData);
+            } else if (action === 'get_settings' && !resData.error && window.onSettingsLoaded) {
+              window.onSettingsLoaded(resData);
+            } else if (action === 'inspect' && window.onInspectResult) {
+              window.onInspectResult(resData);
+            } else if (action === 'mouse_status' && window.onMouseStatus) {
+              window.onMouseStatus(resData);
+            } else if (action === 'mouse_apply_settings' && window.onMouseFeedback) {
+              window.onMouseFeedback(resData);
+            } else if (resData.message !== undefined && window.onFeedback) {
+              window.onFeedback(resData);
+            }
+          })
+          .catch(console.error);
       }
     }
 
@@ -92,12 +110,24 @@
     }
 
     // Callbacks from Python
+    let lastDeviceStatusKey = null;
+    let wasKbConnected = false;
+
     window.onDeviceStatus = function(d) {
+      const statusKey = `${d.connected}:${d.node || ''}:${d.vid_pid || ''}:${d.dev_id || ''}:${d.conn_type || ''}:${d.display_fw || ''}:${d.conflict || ''}`;
+      const justConnected = !wasKbConnected && !!d.connected;
+      wasKbConnected = !!d.connected;
+      if (justConnected) {
+        fetchKeyboardSettings();
+        fetchCurrentScreen();
+      }
+      if (statusKey === lastDeviceStatusKey) return;
+      lastDeviceStatusKey = statusKey;
+
       const isCable = d.connected && d.conn_type !== 'wireless';
       const kbWarning = document.getElementById('kbCableWarning');
       const kbBattery = document.getElementById('infoKbBattery');
       const kbBadge = document.getElementById('infoKbStatusBadge');
-
       if (d.connected) {
         deviceBadge.className = 'status-badge connected';
         deviceText.textContent = isCable ? `Teclado: ${d.name}` : `Teclado: ${d.name} (Sem Fio 2.4G)`;
@@ -201,6 +231,9 @@
           setSelectedSledColor(s.sled.rgb[0], s.sled.rgb[1], s.sled.rgb[2]);
         }
       }
+      if (typeof drawKeyboardFrame === 'function') {
+        drawKeyboardFrame(performance.now());
+      }
     };
 
     function fetchKeyboardSettings() {
@@ -226,11 +259,16 @@
     const infoTftCurrentScreen = document.getElementById('infoTftCurrentScreen');
 
     let currentSelectedFileName = 'animacao.gif';
+    let lastRenderedScreenKey = null;
 
     function renderCurrentScreen(d) {
       if (!d) return;
+      const screenKey = `${!!d.has_saved}:${d.uploaded_at || ''}:${d.fit_mode || ''}`;
+      const shouldUpdateImg = screenKey !== lastRenderedScreenKey;
+      lastRenderedScreenKey = screenKey;
+
       if (d.has_saved) {
-        if (currentScreenImg && d.preview_data_url) {
+        if (currentScreenImg && d.preview_data_url && shouldUpdateImg) {
           currentScreenImg.src = d.preview_data_url;
           currentScreenImg.style.objectFit = d.fit_mode === 'contain' ? 'contain' : (d.fit_mode === 'stretch' ? 'fill' : 'cover');
         }
@@ -250,7 +288,7 @@
         if (btnForgetScreen) btnForgetScreen.style.display = 'inline-flex';
         if (infoTftCurrentScreen) infoTftCurrentScreen.textContent = `${d.file_name} (${d.frames_count} q • ${d.delay}ms)`;
       } else {
-        if (currentScreenImg) {
+        if (currentScreenImg && shouldUpdateImg) {
           currentScreenImg.src = STANDBY_SCREEN_SVG;
           currentScreenImg.style.objectFit = 'contain';
         }
@@ -767,10 +805,12 @@
       });
     });
 
-    // Initialize Default Colors
+    // Initialize Default Colors & Pre-render Keyboard Canvas
     setSelectedColor(0, 255, 255);
     setSelectedSledColor(0, 255, 255);
-
+    if (typeof drawKeyboardFrame === 'function') {
+      drawKeyboardFrame(performance.now());
+    }
 
     // Auto-start preview if lighting tab is active on load
     if (document.getElementById('tab-lighting')?.classList.contains('active')) {
@@ -806,48 +846,72 @@
 
     function renderDpiStages(stages, activeStage) {
       if (!mouseDpiStagesContainer) return;
-      mouseDpiStagesContainer.innerHTML = '';
+
+      if (mouseDpiStagesContainer.children.length !== stages.length) {
+        mouseDpiStagesContainer.innerHTML = '';
+        stages.forEach((dpi, idx) => {
+          const stageNum = idx + 1;
+          const isCurrent = stageNum === activeStage;
+          const color = DPI_STAGE_COLORS[idx % DPI_STAGE_COLORS.length];
+
+          const card = document.createElement('div');
+          card.className = `mouse-stage-card ${isCurrent ? 'active' : ''}`;
+
+          card.innerHTML = `
+            <div class="mouse-stage-header">
+              <div class="mouse-stage-title">
+                <span class="mouse-stage-color-dot" style="background: ${color}; color: ${color};"></span>
+                <span class="mouse-stage-title-text">Estágio ${stageNum} ${isCurrent ? '• Ativo' : ''}</span>
+              </div>
+              <input type="radio" name="activeDpiStage" value="${stageNum}" ${isCurrent ? 'checked' : ''} class="mouse-stage-radio">
+            </div>
+            <div class="mouse-stage-input-row">
+              <input type="number" min="50" max="22000" step="50" value="${dpi}" data-stage-index="${idx}">
+              <span class="unit">DPI</span>
+            </div>
+          `;
+
+          const radio = card.querySelector('input[type="radio"]');
+          const numInput = card.querySelector('input[type="number"]');
+
+          card.addEventListener('click', (e) => {
+            if (e.target !== numInput) {
+              radio.checked = true;
+              mouseState.active_stage = stageNum;
+              renderDpiStages(mouseState.dpi_stages, mouseState.active_stage);
+            }
+          });
+
+          numInput.addEventListener('change', (e) => {
+            const val = Math.max(50, Math.min(22000, parseInt(e.target.value, 10) || 800));
+            e.target.value = val;
+            mouseState.dpi_stages[idx] = val;
+          });
+
+          mouseDpiStagesContainer.appendChild(card);
+        });
+        return;
+      }
 
       stages.forEach((dpi, idx) => {
         const stageNum = idx + 1;
         const isCurrent = stageNum === activeStage;
-        const color = DPI_STAGE_COLORS[idx % DPI_STAGE_COLORS.length];
-        
-        const card = document.createElement('div');
-        card.className = `mouse-stage-card ${isCurrent ? 'active' : ''}`;
+        const card = mouseDpiStagesContainer.children[idx];
+        if (!card) return;
 
-        card.innerHTML = `
-          <div class="mouse-stage-header">
-            <div class="mouse-stage-title">
-              <span class="mouse-stage-color-dot" style="background: ${color}; color: ${color};"></span>
-              <span>Estágio ${stageNum} ${isCurrent ? '• Ativo' : ''}</span>
-            </div>
-            <input type="radio" name="activeDpiStage" value="${stageNum}" ${isCurrent ? 'checked' : ''} class="mouse-stage-radio">
-          </div>
-          <div class="mouse-stage-input-row">
-            <input type="number" min="50" max="22000" step="50" value="${dpi}" data-stage-index="${idx}">
-            <span class="unit">DPI</span>
-          </div>
-        `;
-
+        card.classList.toggle('active', isCurrent);
+        const titleText = card.querySelector('.mouse-stage-title-text');
+        if (titleText) {
+          titleText.textContent = `Estágio ${stageNum} ${isCurrent ? '• Ativo' : ''}`;
+        }
         const radio = card.querySelector('input[type="radio"]');
+        if (radio) {
+          radio.checked = isCurrent;
+        }
         const numInput = card.querySelector('input[type="number"]');
-
-        card.addEventListener('click', (e) => {
-          if (e.target !== numInput) {
-            radio.checked = true;
-            mouseState.active_stage = stageNum;
-            renderDpiStages(mouseState.dpi_stages, mouseState.active_stage);
-          }
-        });
-
-        numInput.addEventListener('change', (e) => {
-          const val = Math.max(50, Math.min(22000, parseInt(e.target.value, 10) || 800));
-          e.target.value = val;
-          mouseState.dpi_stages[idx] = val;
-        });
-
-        mouseDpiStagesContainer.appendChild(card);
+        if (numInput && document.activeElement !== numInput) {
+          numInput.value = dpi;
+        }
       });
     }
 
@@ -855,13 +919,18 @@
       sendToPython('mouse_status');
     }
 
+    let lastMouseStatusKey = null;
+
     window.onMouseStatus = function(d) {
       if (!mouseBadge || !mouseText) return;
+      const mKey = JSON.stringify(d);
+      if (mKey === lastMouseStatusKey) return;
+      lastMouseStatusKey = mKey;
+
       const mBadge = document.getElementById('infoMouseStatusBadge');
       const mConn = document.getElementById('infoMouseConn');
       const mNode = document.getElementById('infoMouseNode');
       const mBatt = document.getElementById('infoMouseBattery');
-
       if (d.connected) {
         mouseBadge.className = 'status-badge connected';
         mouseText.textContent = d.is_wireless ? 'Mouse X11 (2.4G)' : 'Mouse X11 (Cabo)';
@@ -955,11 +1024,12 @@
     }
 
     checkDevice();
+    fetchCurrentScreen();
+    fetchKeyboardSettings();
 
     // Auto-activate tab from URL hash if provided
     if (window.location.hash) {
       const initialTab = document.querySelector(`.tab-btn[data-tab="${window.location.hash.slice(1)}"]`);
-      if (initialTab) initialTab.click();
+      if (initialTab) activateTab(initialTab);
     }
-    fetchCurrentScreen();
     setInterval(checkDevice, 4000);
