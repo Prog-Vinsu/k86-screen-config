@@ -16,7 +16,7 @@ import time
 import fcntl
 import select
 import threading
-from typing import Optional, Dict, Any, List, Tuple
+from typing import Optional, Dict, Any, List, Tuple, Callable
 
 # Supported Hardware
 X11_VID = "1d57"
@@ -307,6 +307,7 @@ class X11MouseManager:
 
         self._running = False
         self._thread: Optional[threading.Thread] = None
+        self._io_lock = threading.Lock()
 
     def start(self):
         if self._running:
@@ -317,46 +318,56 @@ class X11MouseManager:
 
     def stop(self):
         self._running = False
-        if self.device:
-            self.device.close()
-            self.device = None
+        with self._io_lock:
+            if self.device:
+                self.device.close()
+                self.device = None
+            self.dev_info = None
 
     def _monitor_loop(self):
         while self._running:
-            if not self.device:
-                info = find_x11_mouse_hidraw()
-                if info:
+            with self._io_lock:
+                if self.device and self.dev_info and not os.path.exists(self.dev_info["node"]):
                     try:
-                        self.device = X11MouseDevice(info["node"])
-                        self.dev_info = info
+                        self.device.close()
                     except Exception:
-                        self.device = None
-                        self.dev_info = None
+                        pass
+                    self.device = None
+                    self.dev_info = None
 
-            if self.device:
-                # Read incoming input reports (such as battery status 0x03)
-                try:
-                    raw = self.device.read_input_report(timeout_s=0.5)
-                    if raw and len(raw) >= 5 and raw[0] == REPORT_BATTERY:
-                        # [0x03, 0x55, 0x40, 0x01, battery_percent]
-                        if raw[1] == X11_MODEL_ID and raw[2] == 0x40:
-                            level = raw[4]
-                            if 0 <= level <= 100:
-                                self.battery_level = level
-                except Exception:
-                    # Device disconnected
-                    if self.device:
+                if not self.device:
+                    info = find_x11_mouse_hidraw()
+                    if info:
                         try:
-                            self.device.close()
+                            self.device = X11MouseDevice(info["node"])
+                            self.dev_info = info
                         except Exception:
-                            pass
-                        self.device = None
-                        self.dev_info = None
-                    time.sleep(1.0)
-                time.sleep(1.0)
+                            self.device = None
+                            self.dev_info = None
+
+                if self.device:
+                    # Read incoming input reports (such as battery status 0x03)
+                    try:
+                        raw = self.device.read_input_report(timeout_s=0.2)
+                        if raw and len(raw) >= 5 and raw[0] == REPORT_BATTERY:
+                            # [0x03, 0x55, 0x40, 0x01, battery_percent]
+                            if raw[1] == X11_MODEL_ID and raw[2] == 0x40:
+                                level = raw[4]
+                                if 0 <= level <= 100:
+                                    self.battery_level = level
+                    except Exception:
+                        # Device disconnected
+                        if self.device:
+                            try:
+                                self.device.close()
+                            except Exception:
+                                pass
+                            self.device = None
+                            self.dev_info = None
+            time.sleep(1.0)
 
     def get_status(self) -> Dict[str, Any]:
-        info = find_x11_mouse_hidraw()
+        info = self.dev_info if self._running else find_x11_mouse_hidraw()
         connected = bool(info)
         return {
             "connected": connected,
@@ -365,7 +376,7 @@ class X11MouseManager:
             "is_wireless": info.get("is_wireless", True) if info else True,
             "battery": self.battery_level,
             "polling_rate": self.polling_rate,
-            "dpi_stages": self.dpi_stages,
+            "dpi_stages": list(self.dpi_stages),
             "active_stage": self.active_stage,
             "angle_snap": self.angle_snap,
             "ripple_control": self.ripple_control,
@@ -373,70 +384,83 @@ class X11MouseManager:
             "debounce_ms": self.debounce_ms,
             "sleep_minutes": self.sleep_minutes,
             "light_mode": self.light_mode,
-            "light_color": self.light_color
+            "light_color": list(self.light_color)
         }
 
     def apply_settings(self, settings: Dict[str, Any]) -> bool:
-        if not self.device:
-            info = find_x11_mouse_hidraw()
-            if not info:
-                return False
-            self.device = X11MouseDevice(info["node"])
-            self.dev_info = info
-        is_wireless = self.dev_info.get("is_wireless", True) if self.dev_info else True
-        success = True
+        with self._io_lock:
+            if not self.device:
+                info = find_x11_mouse_hidraw()
+                if not info:
+                    return False
+                try:
+                    self.device = X11MouseDevice(info["node"])
+                    self.dev_info = info
+                except Exception:
+                    self.device = None
+                    self.dev_info = None
+                    return False
+            is_wireless = self.dev_info.get("is_wireless", True) if self.dev_info else True
+            success = True
 
-        # Polling rate
-        if "polling_rate" in settings:
-            new_hz = int(settings["polling_rate"])
-            if self.device.set_polling_rate(new_hz):
-                self.polling_rate = new_hz
-            else:
-                success = False
-            time.sleep(0.3)  # Intervalo de segurança para o firmware sem fio do dongle
+            # Polling rate
+            if "polling_rate" in settings:
+                new_hz = int(settings["polling_rate"])
+                if self.device.set_polling_rate(new_hz):
+                    self.polling_rate = new_hz
+                else:
+                    success = False
+                time.sleep(0.3)  # Intervalo de segurança para o firmware sem fio do dongle
 
-        # DPI config
-        dpi_changed = any(k in settings for k in ["dpi_stages", "active_stage", "angle_snap", "ripple_control", "lod"])
-        if dpi_changed:
-            stages = settings.get("dpi_stages", self.dpi_stages)
-            act_stage = int(settings.get("active_stage", self.active_stage))
-            ang = bool(settings.get("angle_snap", self.angle_snap))
-            rip = bool(settings.get("ripple_control", self.ripple_control))
-            lod_val = int(settings.get("lod", self.lod))
+            # DPI config
+            dpi_changed = any(k in settings for k in ["dpi_stages", "active_stage", "angle_snap", "ripple_control", "lod"])
+            if dpi_changed:
+                stages = settings.get("dpi_stages", self.dpi_stages)
+                act_stage = int(settings.get("active_stage", self.active_stage))
+                ang = bool(settings.get("angle_snap", self.angle_snap))
+                rip = bool(settings.get("ripple_control", self.ripple_control))
+                lod_val = int(settings.get("lod", self.lod))
 
-            if self.device.set_dpi_config(stages, act_stage, ang, rip, lod_val, is_wireless=is_wireless):
-                self.dpi_stages = stages
-                self.active_stage = act_stage
-                self.angle_snap = ang
-                self.ripple_control = rip
-                self.lod = lod_val
-            else:
-                success = False
-            time.sleep(0.3)
+                if self.device.set_dpi_config(stages, act_stage, ang, rip, lod_val, is_wireless=is_wireless):
+                    self.dpi_stages = stages
+                    self.active_stage = act_stage
+                    self.angle_snap = ang
+                    self.ripple_control = rip
+                    self.lod = lod_val
+                else:
+                    success = False
+                time.sleep(0.3)
 
-        # Lighting & Debounce
-        light_changed = any(k in settings for k in ["light_mode", "light_color", "debounce_ms", "sleep_minutes"])
-        if light_changed:
-            mode = int(settings.get("light_mode", self.light_mode))
-            color = settings.get("light_color", self.light_color)
-            deb = int(settings.get("debounce_ms", self.debounce_ms))
-            slp = float(settings.get("sleep_minutes", self.sleep_minutes))
+            # Lighting & Debounce
+            light_changed = any(k in settings for k in ["light_mode", "light_color", "debounce_ms", "sleep_minutes"])
+            if light_changed:
+                mode = int(settings.get("light_mode", self.light_mode))
+                color = settings.get("light_color", self.light_color)
+                deb = int(settings.get("debounce_ms", self.debounce_ms))
+                slp = float(settings.get("sleep_minutes", self.sleep_minutes))
 
-            if self.device.set_lighting_and_debounce(
-                mode=mode,
-                color_rgb=(color[0], color[1], color[2]),
-                sleep_minutes=slp,
-                debounce_ms=deb
-            ):
-                self.light_mode = mode
-                self.light_color = color
-                self.debounce_ms = deb
-                self.sleep_minutes = slp
-            else:
-                success = False
+                if self.device.set_lighting_and_debounce(
+                    mode=mode,
+                    color_rgb=(color[0], color[1], color[2]),
+                    sleep_minutes=slp,
+                    debounce_ms=deb
+                ):
+                    self.light_mode = mode
+                    self.light_color = color
+                    self.debounce_ms = deb
+                    self.sleep_minutes = slp
+                else:
+                    success = False
 
-        return success
+            return success
 
+    def submit_apply_settings(self, settings: Dict[str, Any], callback: Optional[Callable[[bool], None]] = None) -> None:
+        def _run():
+            ok = self.apply_settings(settings)
+            if callback:
+                callback(ok)
+
+        threading.Thread(target=_run, daemon=True).start()
 
 # Global Manager Instance
 mouse_manager = X11MouseManager()
